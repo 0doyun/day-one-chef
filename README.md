@@ -1,312 +1,136 @@
-<p align="center">
-  <h1 align="center">Claude Code Game Studios</h1>
-  <p align="center">
-    Turn a single Claude Code session into a full game development studio.
-    <br />
-    49 agents. 72 skills. One coordinated AI team.
-  </p>
-</p>
+# Day One Chef
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href=".claude/agents"><img src="https://img.shields.io/badge/agents-49-blueviolet" alt="49 Agents"></a>
-  <a href=".claude/skills"><img src="https://img.shields.io/badge/skills-72-green" alt="72 Skills"></a>
-  <a href=".claude/hooks"><img src="https://img.shields.io/badge/hooks-12-orange" alt="12 Hooks"></a>
-  <a href=".claude/rules"><img src="https://img.shields.io/badge/rules-11-red" alt="11 Rules"></a>
-  <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/built%20for-Claude%20Code-f5f5f5?logo=anthropic" alt="Built for Claude Code"></a>
-  <a href="https://www.buymeacoffee.com/donchitos3"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20this%20project-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
-  <a href="https://github.com/sponsors/Donchitos"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Support%20this%20project-ea4aaa?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
-</p>
+> 오늘 첫 출근한 초보 AI 요리사에게 **한 줄 한국어 지시**로 요리 절차를 가르치는 미니게임. 지시의 정밀도에 따라 성공/실패가 갈린다.
+
+*A mini-game where you teach a rookie AI chef to cook with a single line of Korean instruction per order. The chef — confident but clueless — executes exactly what you say, no more, no less.*
 
 ---
 
-## Why This Exists
+## 🎮 한 줄 게임 소개
 
-Building a game solo with AI is powerful — but a single chat session has no structure. No one stops you from hardcoding magic numbers, skipping design docs, or writing spaghetti code. There's no QA pass, no design review, no one asking "does this actually fit the game's vision?"
+플레이어는 "치즈버거"라는 주문명만 보고, 냉장고에 놓인 원시 재료들을 어떻게 조리해서 완성할지 셰프에게 한 줄로 가르친다. 셰프는 지시를 문자 그대로 수행하며 누락된 절차는 생략한다 — 계란찜을 시킬 때 "계란 먼저, 그 다음 물"이라고 안 하면 셰프는 당당하게 물부터 섞는다.
 
-**Claude Code Game Studios** solves this by giving your AI session the structure of a real studio. Instead of one general-purpose assistant, you get 49 specialized agents organized into a studio hierarchy — directors who guard the vision, department leads who own their domains, and specialists who do the hands-on work. Each agent has defined responsibilities, escalation paths, and quality gates.
-
-The result: you still make every decision, but now you have a team that asks the right questions, catches mistakes early, and keeps your project organized from first brainstorm to launch.
+**Core loop:** 주문 등장 → 한국어 지시 입력 (≤80자) → Gemini가 지시를 행동 JSON으로 변환 → Unity 애니메이션으로 시연 → Gemini가 결과 평가 → 다음 주문.
 
 ---
 
-## Table of Contents
-
-- [What's Included](#whats-included)
-- [Studio Hierarchy](#studio-hierarchy)
-- [Slash Commands](#slash-commands)
-- [Getting Started](#getting-started)
-- [Upgrading](#upgrading)
-- [Project Structure](#project-structure)
-- [How It Works](#how-it-works)
-- [Design Philosophy](#design-philosophy)
-- [Customization](#customization)
-- [Platform Support](#platform-support)
-- [Community](#community)
-- [Supporting This Project](#supporting-this-project)
-- [License](#license)
-
----
-
-## What's Included
-
-| Category | Count | Description |
-|----------|-------|-------------|
-| **Agents** | 49 | Specialized subagents across design, programming, art, audio, narrative, QA, and production |
-| **Skills** | 72 | Slash commands for every workflow phase (`/start`, `/design-system`, `/create-epics`, `/create-stories`, `/dev-story`, `/story-done`, etc.) |
-| **Hooks** | 12 | Automated validation on commits, pushes, asset changes, session lifecycle, agent audit trail, and gap detection |
-| **Rules** | 11 | Path-scoped coding standards enforced when editing gameplay, engine, AI, UI, network code, and more |
-| **Templates** | 39 | Document templates for GDDs, UX specs, ADRs, sprint plans, HUD design, accessibility, and more |
-
-## Studio Hierarchy
-
-Agents are organized into three tiers, matching how real studios operate:
+## 🏗 아키텍처
 
 ```
-Tier 1 — Directors (Opus)
-  creative-director    technical-director    producer
+┌─────────────────────────────────────────────────────────────┐
+│                     Android APK                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │        Flutter Shell (Riverpod)                        │  │
+│  │  ┌─────────────────────────────────────────────────┐  │  │
+│  │  │   webview_flutter  ◄──── JSChannel ────►        │  │  │
+│  │  │   ┌───────────────────────────────────────────┐ │  │  │
+│  │  │   │     Unity WebGL Build                     │ │  │  │
+│  │  │   │   ┌──────────────┐    ┌────────────────┐  │ │  │  │
+│  │  │   │   │  C# Game     │    │  HTML input    │  │ │  │  │
+│  │  │   │   │  (URP 2D)    │◄──►│  overlay       │  │ │  │  │
+│  │  │   │   │              │    │  (Korean IME)  │  │ │  │  │
+│  │  │   │   └──────┬───────┘    └────────────────┘  │ │  │  │
+│  │  │   │          │ .jslib bridge                  │ │  │  │
+│  │  │   │          ▼                                │ │  │  │
+│  │  │   │   UnityWebRequest ──► Gemini 2.5 Flash API│ │  │  │
+│  │  │   └───────────────────────────────────────────┘ │  │  │
+│  │  └─────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 
-Tier 2 — Department Leads (Sonnet)
-  game-designer        lead-programmer       art-director
-  audio-director       narrative-director    qa-lead
-  release-manager      localization-lead
-
-Tier 3 — Specialists (Sonnet/Haiku)
-  gameplay-programmer  engine-programmer     ai-programmer
-  network-programmer   tools-programmer      ui-programmer
-  systems-designer     level-designer        economy-designer
-  technical-artist     sound-designer        writer
-  world-builder        ux-designer           prototyper
-  performance-analyst  devops-engineer       analytics-engineer
-  security-engineer    qa-tester             accessibility-specialist
-  live-ops-designer    community-manager
+Web browser path (Vercel):  Unity WebGL  ◄──JS──►  (no Flutter shell)
 ```
 
-### Engine Specialists
-
-The template includes agent sets for all three major engines. Use the set that matches your project:
-
-| Engine | Lead Agent | Sub-Specialists |
-|--------|-----------|-----------------|
-| **Godot 4** | `godot-specialist` | GDScript, Shaders, GDExtension |
-| **Unity** | `unity-specialist` | DOTS/ECS, Shaders/VFX, Addressables, UI Toolkit |
-| **Unreal Engine 5** | `unreal-specialist` | GAS, Blueprints, Replication, UMG/CommonUI |
-
-## Slash Commands
-
-Type `/` in Claude Code to access all 72 skills:
-
-**Onboarding & Navigation**
-`/start` `/help` `/project-stage-detect` `/setup-engine` `/adopt`
-
-**Game Design**
-`/brainstorm` `/map-systems` `/design-system` `/quick-design` `/review-all-gdds` `/propagate-design-change`
-
-**Art & Assets**
-`/art-bible` `/asset-spec` `/asset-audit`
-
-**UX & Interface Design**
-`/ux-design` `/ux-review`
-
-**Architecture**
-`/create-architecture` `/architecture-decision` `/architecture-review` `/create-control-manifest`
-
-**Stories & Sprints**
-`/create-epics` `/create-stories` `/dev-story` `/sprint-plan` `/sprint-status` `/story-readiness` `/story-done` `/estimate`
-
-**Reviews & Analysis**
-`/design-review` `/code-review` `/balance-check` `/content-audit` `/scope-check` `/perf-profile` `/tech-debt` `/gate-check` `/consistency-check`
-
-**QA & Testing**
-`/qa-plan` `/smoke-check` `/soak-test` `/regression-suite` `/test-setup` `/test-helpers` `/test-evidence-review` `/test-flakiness` `/skill-test` `/skill-improve`
-
-**Production**
-`/milestone-review` `/retrospective` `/bug-report` `/bug-triage` `/reverse-document` `/playtest-report`
-
-**Release**
-`/release-checklist` `/launch-checklist` `/changelog` `/patch-notes` `/hotfix`
-
-**Creative & Content**
-`/prototype` `/onboard` `/localize`
-
-**Team Orchestration** (coordinate multiple agents on a single feature)
-`/team-combat` `/team-narrative` `/team-ui` `/team-release` `/team-polish` `/team-audio` `/team-level` `/team-live-ops` `/team-qa`
-
-## Getting Started
-
-### Prerequisites
-
-- [Git](https://git-scm.com/)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`)
-- **Recommended**: [jq](https://jqlang.github.io/jq/) (for hook validation) and Python 3 (for JSON validation)
-
-All hooks fail gracefully if optional tools are missing — nothing breaks, you just lose validation.
-
-### Setup
-
-1. **Clone or use as template**:
-   ```bash
-   git clone https://github.com/Donchitos/Claude-Code-Game-Studios.git my-game
-   cd my-game
-   ```
-
-2. **Open Claude Code** and start a session:
-   ```bash
-   claude
-   ```
-
-3. **Run `/start`** — the system asks where you are (no idea, vague concept,
-   clear design, existing work) and guides you to the right workflow. No assumptions.
-
-   Or jump directly to a specific skill if you already know what you need:
-   - `/brainstorm` — explore game ideas from scratch
-   - `/setup-engine godot 4.6` — configure your engine if you already know
-   - `/project-stage-detect` — analyze an existing project
-
-## Upgrading
-
-Already using an older version of this template? See [UPGRADING.md](UPGRADING.md)
-for step-by-step migration instructions, a breakdown of what changed between
-versions, and which files are safe to overwrite vs. which need a manual merge.
-
-## Project Structure
-
-```
-CLAUDE.md                           # Master configuration
-.claude/
-  settings.json                     # Hooks, permissions, safety rules
-  agents/                           # 49 agent definitions (markdown + YAML frontmatter)
-  skills/                           # 72 slash commands (subdirectory per skill)
-  hooks/                            # 12 hook scripts (bash, cross-platform)
-  rules/                            # 11 path-scoped coding standards
-  statusline.sh                     # Status line script (context%, model, stage, epic breadcrumb)
-  docs/
-    workflow-catalog.yaml           # 7-phase pipeline definition (read by /help)
-    templates/                      # 39 document templates
-src/                                # Game source code
-assets/                             # Art, audio, VFX, shaders, data files
-design/                             # GDDs, narrative docs, level designs
-docs/                               # Technical documentation and ADRs
-tests/                              # Test suites (unit, integration, performance, playtest)
-tools/                              # Build and pipeline tools
-prototypes/                         # Throwaway prototypes (isolated from src/)
-production/                         # Sprint plans, milestones, release tracking
-```
-
-## How It Works
-
-### Agent Coordination
-
-Agents follow a structured delegation model:
-
-1. **Vertical delegation** — directors delegate to leads, leads delegate to specialists
-2. **Horizontal consultation** — same-tier agents can consult each other but can't make binding cross-domain decisions
-3. **Conflict resolution** — disagreements escalate up to the shared parent (`creative-director` for design, `technical-director` for technical)
-4. **Change propagation** — cross-department changes are coordinated by `producer`
-5. **Domain boundaries** — agents don't modify files outside their domain without explicit delegation
-
-### Collaborative, Not Autonomous
-
-This is **not** an auto-pilot system. Every agent follows a strict collaboration protocol:
-
-1. **Ask** — agents ask questions before proposing solutions
-2. **Present options** — agents show 2-4 options with pros/cons
-3. **You decide** — the user always makes the call
-4. **Draft** — agents show work before finalizing
-5. **Approve** — nothing gets written without your sign-off
-
-You stay in control. The agents provide structure and expertise, not autonomy.
-
-### Automated Safety
-
-**Hooks** run automatically on every session:
-
-| Hook | Trigger | What It Does |
-|------|---------|--------------|
-| `validate-commit.sh` | PreToolUse (Bash) | Checks for hardcoded values, TODO format, JSON validity, design doc sections — exits early if the command is not `git commit` |
-| `validate-push.sh` | PreToolUse (Bash) | Warns on pushes to protected branches — exits early if the command is not `git push` |
-| `validate-assets.sh` | PostToolUse (Write/Edit) | Validates naming conventions and JSON structure — exits early if the file is not in `assets/` |
-| `session-start.sh` | Session open | Shows current branch and recent commits for orientation |
-| `detect-gaps.sh` | Session open | Detects fresh projects (suggests `/start`) and missing design docs when code or prototypes exist |
-| `pre-compact.sh` | Before compaction | Preserves session progress notes |
-| `post-compact.sh` | After compaction | Reminds Claude to restore session state from `active.md` |
-| `notify.sh` | Notification event | Shows Windows toast notification via PowerShell |
-| `session-stop.sh` | Session close | Archives `active.md` to session log and records git activity |
-| `log-agent.sh` | Agent spawned | Audit trail start — logs subagent invocation |
-| `log-agent-stop.sh` | Agent stops | Audit trail stop — completes subagent record |
-| `validate-skill-change.sh` | PostToolUse (Write/Edit) | Advises running `/skill-test` after any `.claude/skills/` change |
-
-> **Note**: `validate-commit.sh`, `validate-assets.sh`, and `validate-skill-change.sh` fire on every Bash/Write tool call and exit immediately (exit 0) when the command or file path is not relevant. This is normal hook behavior — not a performance concern.
-
-**Permission rules** in `settings.json` auto-allow safe operations (git status, test runs) and block dangerous ones (force push, `rm -rf`, reading `.env` files).
-
-### Path-Scoped Rules
-
-Coding standards are automatically enforced based on file location:
-
-| Path | Enforces |
-|------|----------|
-| `src/gameplay/**` | Data-driven values, delta time usage, no UI references |
-| `src/core/**` | Zero allocations in hot paths, thread safety, API stability |
-| `src/ai/**` | Performance budgets, debuggability, data-driven parameters |
-| `src/networking/**` | Server-authoritative, versioned messages, security |
-| `src/ui/**` | No game state ownership, localization-ready, accessibility |
-| `design/gdd/**` | Required 8 sections, formula format, edge cases |
-| `tests/**` | Test naming, coverage requirements, fixture patterns |
-| `prototypes/**` | Relaxed standards, README required, hypothesis documented |
-
-## Design Philosophy
-
-This template is grounded in professional game development practices:
-
-- **MDA Framework** — Mechanics, Dynamics, Aesthetics analysis for game design
-- **Self-Determination Theory** — Autonomy, Competence, Relatedness for player motivation
-- **Flow State Design** — Challenge-skill balance for player engagement
-- **Bartle Player Types** — Audience targeting and validation
-- **Verification-Driven Development** — Tests first, then implementation
-
-## Customization
-
-This is a **template**, not a locked framework. Everything is meant to be customized:
-
-- **Add/remove agents** — delete agent files you don't need, add new ones for your domains
-- **Edit agent prompts** — tune agent behavior, add project-specific knowledge
-- **Modify skills** — adjust workflows to match your team's process
-- **Add rules** — create new path-scoped rules for your project's directory structure
-- **Tune hooks** — adjust validation strictness, add new checks
-- **Pick your engine** — use the Godot, Unity, or Unreal agent set (or none)
-- **Set review intensity** — `full` (all director gates), `lean` (phase gates only), or `solo` (none). Set during `/start` or edit `production/review-mode.txt`. Override per-run with `--review solo` on any skill.
-
-## Platform Support
-
-Tested on **Windows 10** with Git Bash. All hooks use POSIX-compatible patterns (`grep -E`, not `grep -P`) and include fallbacks for missing tools. Works on macOS and Linux without modification.
-
-## Community
-
-- **Discussions** — [GitHub Discussions](https://github.com/Donchitos/Claude-Code-Game-Studios/discussions) for questions, ideas, and showcasing what you've built
-- **Issues** — [Bug reports and feature requests](https://github.com/Donchitos/Claude-Code-Game-Studios/issues)
+**핵심 설계 원칙:** Flutter ↔ Unity WebView 양방향 브릿지를 통한 깔끔한 메시지 교환이 이 프로젝트의 1차 설계 면. 편의를 위해 브릿지를 우회하지 않는다.
 
 ---
 
-## Supporting This Project
+## 🧱 기술 스택
 
-Claude Code Game Studios is free and open source. If it saves you time or helps you ship your game, consider supporting continued development:
-
-<p>
-  <a href="https://www.buymeacoffee.com/donchitos3"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee"></a>
-  &nbsp;
-  <a href="https://github.com/sponsors/Donchitos"><img src="https://img.shields.io/badge/GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
-</p>
-
-- **[Buy Me a Coffee](https://www.buymeacoffee.com/donchitos3)** — one-time support
-- **[GitHub Sponsors](https://github.com/sponsors/Donchitos)** — recurring support through GitHub
-
-Sponsorships help fund time spent maintaining skills, adding new agents, keeping up with Claude Code and engine API changes, and responding to community issues.
+| 레이어 | 기술 |
+|---|---|
+| 게임 엔진 | **Unity 6.3 LTS** + C# (.NET Standard 2.1, IL2CPP) |
+| 렌더링 | URP (Universal Render Pipeline) 2D |
+| 앱 셸 | **Flutter** + Riverpod (Android APK) |
+| WebView | `webview_flutter` |
+| AI | **Gemini 2.5 Flash API** (무료 티어) |
+| 한글 입력 | HTML `<input>` overlay + `.jslib` 브릿지 (Unity WebGL IME 우회) |
+| JSON | Newtonsoft.Json for Unity |
+| 배포 (웹) | Unity WebGL → Vercel |
+| 배포 (앱) | Flutter Android APK → GitHub Release |
 
 ---
 
-*Built for Claude Code. Maintained and extended — contributions welcome via [GitHub Discussions](https://github.com/Donchitos/Claude-Code-Game-Studios/discussions).*
+## 🕹 플레이
 
-## License
+- 🌐 **웹 빌드**: *(배포 예정 — Vercel URL)*
+- 📱 **Android APK**: *(배포 예정 — GitHub Releases)*
+- 🎬 **시연 영상**: *(제작 예정 — 성공 모먼트 + 순서 실수 허세 모먼트 + 브릿지 동작)*
 
-MIT License. See [LICENSE](LICENSE) for details.
+---
+
+## 📂 프로젝트 구조
+
+```
+day-one-chef/
+├── CLAUDE.md                    # 프로젝트 설정 (엔진, 표준, 조정 규칙)
+├── design/gdd/
+│   └── game-concept.md          # 게임 스펙 (전체 설계 문서)
+├── docs/
+│   ├── architecture/            # ADR (예정)
+│   └── engine-reference/unity/  # Unity 6.3 LTS 레퍼런스 스냅샷
+├── src/                         # Unity 게임 소스 (예정)
+├── flutter_shell/               # Flutter 셸 (예정)
+├── assets/                      # 게임 에셋 (예정)
+├── tests/                       # EditMode / PlayMode 테스트 (예정)
+└── docs/                        # 기술 문서
+```
+
+---
+
+## 🔑 핵심 코드 파일 (구현 예정)
+
+브릿지 구현이 이 프로젝트의 핵심 볼거리이므로 README에서 직접 링크한다:
+
+- **Unity → JS 메시지 전송**: `src/Bridge/UnityBridge.cs` *(TODO)*
+- **JSLib 브릿지**: `src/Bridge/WebGLBridge.jslib` *(TODO)*
+- **Flutter JSChannel 리시버**: `flutter_shell/lib/bridge/unity_channel.dart` *(TODO)*
+- **Korean IME 오버레이**: `src/Bridge/KoreanImeOverlay.jslib` *(TODO)*
+- **Gemini 호출 레이어**: `src/AI/GeminiClient.cs` *(TODO)*
+
+---
+
+## 📋 설계 문서
+
+- 전체 스펙: [design/gdd/game-concept.md](design/gdd/game-concept.md)
+- Unity 6.3 LTS 레퍼런스: [docs/engine-reference/unity/VERSION.md](docs/engine-reference/unity/VERSION.md)
+- 기술 선호도: [.claude/docs/technical-preferences.md](.claude/docs/technical-preferences.md)
+- ADR (예정): `docs/architecture/` — 5건 예약됨 (IME 전략, 브릿지 프로토콜, Gemini 호출 아키텍처, 액션 실행기 모델, Evaluator 계약)
+
+---
+
+## 🚦 현재 상태
+
+**Pre-production** — 게임 스펙 (§1~16) 확정, 엔진/기술 스택 확정, ADR 및 구현 착수 대기.
+
+**14일 풀타임 + 2일 버퍼** 일정으로 Week 1 기반 / Week 2 브릿지 순서 진행 예정. Korean IME on Unity WebGL이 가장 큰 기술 리스크 — Day 1~2에 조기 프로토타이핑.
+
+전체 일정은 [game-concept.md §7](design/gdd/game-concept.md) 참조.
+
+---
+
+## 🛠 개발 환경
+
+이 리포는 [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) 템플릿 기반으로 관리된다. 49개 전문 에이전트 + 72개 스킬을 Claude Code 세션에 구조로 주입해, 디자인/아키텍처/구현/QA를 역할 분리된 상태로 진행한다.
+
+주요 워크플로우:
+- `/setup-engine` — 엔진 핀 고정 (완료: Unity 6.3 LTS)
+- `/map-systems` — 게임 콘셉트를 시스템 단위로 분해 *(예정)*
+- `/architecture-decision` — ADR 저술 *(예정)*
+- `/create-epics` → `/create-stories` → `/dev-story` — 구현 진행 *(예정)*
+
+---
+
+## 📜 License
+
+MIT. 템플릿 저작권은 [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) 프로젝트에 귀속.
