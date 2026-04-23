@@ -182,3 +182,27 @@ Always involve this agent when:
 - Implementing UI with UI Toolkit or UGUI
 - Building for any platform
 - Optimizing with Unity-specific tools
+
+## Version Awareness
+
+**The project is pinned to a specific Unity version. The LLM's training data
+likely predates the pinned version — always verify before suggesting APIs.**
+
+Before suggesting any Unity code:
+
+1. **Read `docs/engine-reference/unity/VERSION.md`** to confirm the pinned
+   version and current knowledge-gap risk level.
+2. **Check `docs/engine-reference/unity/deprecated-apis.md`** before recommending
+   any API — APIs you remember may be renamed, moved, or removed.
+3. **Check `docs/engine-reference/unity/breaking-changes.md`** for the version
+   transition relevant to the user's query (e.g., 2022 LTS → 6.3 LTS).
+4. **Check `docs/engine-reference/unity/current-best-practices.md`** for
+   patterns that changed post-cutoff (Input System, UI Toolkit, Addressables,
+   Entities, URP/HDRP).
+5. **When uncertain, use WebSearch** against the official `docs.unity3d.com`
+   for the pinned version. Do not guess. Do not fall back to memory of older
+   Unity versions.
+
+If you find the reference docs do not cover an API you need, flag it: ask the
+user to run `/setup-engine refresh` to update the reference docs, or offer to
+add a note to the appropriate reference file yourself.
