@@ -18,11 +18,12 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Android APK                              │
+│                       Mobile (iOS)                           │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │        Flutter Shell (Riverpod)                        │  │
 │  │  ┌─────────────────────────────────────────────────┐  │  │
-│  │  │   webview_flutter  ◄──── JSChannel ────►        │  │  │
+│  │  │   webview_flutter (WKWebView)                   │  │  │
+│  │  │                ◄──── JSChannel ────►            │  │  │
 │  │  │   ┌───────────────────────────────────────────┐ │  │  │
 │  │  │   │     Unity WebGL Build                     │ │  │  │
 │  │  │   │   ┌──────────────┐    ┌────────────────┐  │ │  │  │
@@ -38,7 +39,7 @@
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 
-Web browser path (Vercel):  Unity WebGL  ◄──JS──►  (no Flutter shell)
+Public deploy (Vercel):  Unity WebGL  ◄──JS──►  (browser only, no Flutter shell)
 ```
 
 **핵심 설계 원칙:** Flutter ↔ Unity WebView 양방향 브릿지를 통한 깔끔한 메시지 교환이 이 프로젝트의 1차 설계 면. 편의를 위해 브릿지를 우회하지 않는다.
@@ -51,21 +52,19 @@ Web browser path (Vercel):  Unity WebGL  ◄──JS──►  (no Flutter shell
 |---|---|
 | 게임 엔진 | **Unity 6.3 LTS** + C# (.NET Standard 2.1, IL2CPP) |
 | 렌더링 | URP (Universal Render Pipeline) 2D |
-| 앱 셸 | **Flutter** + Riverpod (Android APK) |
-| WebView | `webview_flutter` |
+| 앱 셸 | **Flutter** + Riverpod |
+| WebView | `webview_flutter` (iOS WKWebView) |
 | AI | **Gemini 2.5 Flash API** (무료 티어) |
 | 한글 입력 | HTML `<input>` overlay + `.jslib` 브릿지 (Unity WebGL IME 우회) |
 | JSON | Newtonsoft.Json for Unity |
-| 배포 (웹) | Unity WebGL → Vercel |
-| 배포 (앱) | Flutter Android APK → GitHub Release |
+| 배포 | Unity WebGL → Vercel |
 
 ---
 
 ## 🕹 플레이
 
 - 🌐 **웹 빌드**: *(배포 예정 — Vercel URL)*
-- 📱 **Android APK**: *(배포 예정 — GitHub Releases)*
-- 🎬 **시연 영상**: *(제작 예정 — 성공 모먼트 + 순서 실수 허세 모먼트 + 브릿지 동작)*
+- 🎬 **시연 영상**: *(제작 예정 — 성공 모먼트 + 순서 실수 허세 모먼트 + 모바일 브릿지 동작)*
 
 ---
 

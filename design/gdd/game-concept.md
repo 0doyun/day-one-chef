@@ -171,7 +171,7 @@
 | Korean IME | HTML `<input>` overlay + `.jslib` bridge | WebGL 한글 입력 조합 처리 |
 | JSON | Newtonsoft.Json for Unity | Gemini 구조화 출력 파싱 |
 | 배포 (웹) | Unity WebGL → Vercel | 브라우저 플레이 |
-| 배포 (앱) | Flutter Android APK → GitHub Release | 모바일 시연 |
+| 모바일 | Flutter (webview_flutter, iOS WKWebView) | 모바일 빌드 |
 
 ---
 
@@ -248,7 +248,7 @@ public void Pause(string pausedJson) { /* 일시정지 */ }
 | 10 | **버퍼일** — IME 초과 / 브릿지 디버깅 / Gemini 프롬프트 튜닝 |
 | 11 | Gemini 호출 #2 (평가) · event_log 통합 · reason 피드백 UI · § 4.3 실패 모드 |
 | 12 | 주문 5종 구현 · 재료 상태 튜닝 · 허세 모먼트 검증 (특히 계란찜 순서 실패) |
-| 13 | APK 빌드 · Vercel 웹 배포 · GitHub Release |
+| 13 | Vercel 웹 배포 · 모바일 빌드 · 시연 영상 녹화 |
 | 14 | 시연 영상 1~2분 · README · 아키텍처 다이어그램 |
 
 **추가 리스크 버퍼: +2일** (IME/브릿지 디버깅 초과 대비)
@@ -258,8 +258,7 @@ public void Pause(string pausedJson) { /* 일시정지 */ }
 ## 8. Acceptance Criteria
 
 - [ ] Unity WebGL 빌드가 Vercel에 배포되어 URL 하나로 즉시 플레이 가능
-- [ ] Android APK가 GitHub Release에 업로드되어 설치 가능
-- [ ] APK 실행 시 Flutter 셸 안에서 Unity 게임이 WebView로 로드되고 정상 동작
+- [ ] Flutter 셸이 모바일(iOS WKWebView)에서 Unity WebGL을 로드하고 브릿지가 정상 동작
 - [ ] **JS → Flutter 브릿지**: 라운드 결과가 Flutter로 전달되어 Riverpod 상태에 누적되고 Material UI로 표시
 - [ ] **Flutter → JS → Unity 브릿지**: Flutter 측 리셋 버튼이 Unity 게임 상태를 초기화
 - [ ] Gemini 호출 #1이 JSON 스키마로 구조화 출력, monologue가 타이핑 스트리밍됨
@@ -267,7 +266,7 @@ public void Pause(string pausedJson) { /* 일시정지 */ }
 - [ ] 한 줄 한국어 입력 → 셰프 행동 실행 → 성공/실패 판정까지 끊김 없이 동작
 - [ ] **계란찜 평가가 event_log 순서를 근거로 실패 reason을 반환함** (순서 민감 훅 동작 증명)
 - [ ] **Gemini API 타임아웃/파싱 실패 시 게임이 크래시 없이 라운드 무효화로 복구됨**
-- [ ] **Korean IME 입력이 브라우저/Android WebView 양쪽에서 조합 중 글자 손실 없이 동작**
+- [ ] **Korean IME 입력이 데스크톱 브라우저와 모바일 WKWebView 양쪽에서 조합 중 글자 손실 없이 동작**
 - [ ] README에 architecture diagram 포함 (Flutter ↔ WebView ↔ JS Bridge ↔ Unity ↔ Gemini)
 - [ ] 1~2분 시연 영상: 성공 모먼트 + **순서 실수로 인한 실패 모먼트** + 브릿지 동작 노출
 - [ ] 브릿지 구현 코드 파일이 README에서 명시적으로 링크
@@ -277,7 +276,7 @@ public void Pause(string pausedJson) { /* 일시정지 */ }
 ## 9. Non-Goals (의도적 OUT-of-scope)
 
 - 사운드 / BGM / SFX
-- iOS 빌드 (Android APK만)
+- 모바일 스토어 제출 (App Store / Google Play)
 - 타이머 / 실패 조건 (손님 인내심 등)
 - 메인 메뉴 / 설정 / 일시정지 UI
 - 다국어 (한국어 단일)
@@ -358,14 +357,14 @@ Gemini 구조화 출력은 수치보다 **스키마 준수**가 핵심이라 별
 - **`serve` 전에 `assemble` 없이 원재료만 올림** → 그대로 서빙. 평가에서 "조립 안 함"으로 실패.
 - **계란찜에서 순서어 없이 지시** → Gemini가 나열 순으로 해석 (보통 물→계란). event_log에 `mix water before crack egg`가 찍혀 순서 오류 판정 → **허세 모먼트 트리거**
 - **WebGL 메모리 초과로 프리즈** → Flutter 측 heartbeat 타임아웃(15초) 감지 → 사용자에게 리셋 버튼 노출 (브릿지 리셋).
-- **Android WebView에서 IME 포커스 잃음** → Flutter 측 입력 필드로 자동 fallback (§6.4).
+- **모바일 WebView에서 IME 포커스 잃음** → Flutter 측 입력 필드로 자동 fallback (§6.4). *개발 메모: iOS Simulator에서 테스트할 때 "I/O → Keyboard → Connect Hardware Keyboard"를 해제하고 시뮬레이션된 iOS에 한국어 키보드를 추가해야 실제 IME 경로가 타는다 — Mac 하드웨어 키보드는 IME를 우회한다.*
 
 ## 15. Dependencies
 
 **업스트림 (이 게임이 의존):**
 - Unity 6.3 LTS + C# (게임 엔진)
 - Gemini 2.5 Flash API (행동 산출 + 평가 — API 없으면 동작 불가)
-- Flutter `webview_flutter` + Riverpod (Android 셸)
+- Flutter `webview_flutter` + Riverpod (모바일 셸)
 - Newtonsoft.Json for Unity (Gemini 응답 파싱)
 - Korean IME overlay (`.jslib` + HTML `<input>`) (한글 입력 가능성의 전제)
 

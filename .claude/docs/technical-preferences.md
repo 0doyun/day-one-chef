@@ -15,15 +15,16 @@
 <!-- Written by /setup-engine. Read by /ux-design, /ux-review, /test-setup, /team-ui, and /dev-story -->
 <!-- to scope interaction specs, test helpers, and implementation to the correct input methods. -->
 
-- **Target Platforms**: Web (Vercel, primary) + Android APK (Flutter WebView shell, secondary)
-- **Input Methods**: Keyboard (Korean text input, primary), Touch (Android)
+- **Target Platforms**: Web (Vercel) + Mobile (Flutter `webview_flutter`, iOS WKWebView)
+- **Input Methods**: Keyboard (Korean text input, primary), Touch (mobile soft keyboard)
 - **Primary Input**: Keyboard — single-line Korean text instruction (≤80 chars per round)
 - **Gamepad Support**: None
-- **Touch Support**: Full (required for Android APK build)
+- **Touch Support**: Full (mobile)
 - **Platform Notes**:
   - **Korean IME on Unity WebGL is a known-hard problem** — Unity's `TMP_InputField` drops in-composition hangul. Must use HTML `<input>` overlay + `.jslib` bridge to route native browser IME into Unity.
   - Bidirectional bridge (Unity ↔ JS ↔ Flutter Riverpod) is a primary architectural surface — all cross-boundary state should flow through it rather than shortcuts.
-  - Unity WebGL is not officially supported on mobile browsers by Unity — Android delivery is via Flutter `webview_flutter` shell, not bare mobile browser.
+  - Unity WebGL is not officially supported on mobile browsers by Unity — mobile path is via Flutter `webview_flutter` + WKWebView, not bare mobile browser.
+  - *Dev note*: iOS Simulator Korean IME testing requires disabling "I/O → Keyboard → Connect Hardware Keyboard" and adding the Korean keyboard in the simulated iOS Settings; the Mac hardware keyboard otherwise bypasses the IME and hides composition bugs.
 
 ## Naming Conventions
 
@@ -39,11 +40,11 @@
 
 ## Performance Budgets
 
-- **Target Framerate**: 60fps (desktop web), 30fps floor (Android WebView)
-- **Frame Budget**: 16.6ms desktop, 33.3ms Android fallback
+- **Target Framerate**: 60fps (desktop web), 30fps floor (mobile WKWebView)
+- **Frame Budget**: 16.6ms desktop, 33.3ms mobile fallback
 - **Draw Calls**: ≤ 100 per frame (WebGL + 2D — mostly sprite batching via SRP Batcher)
-- **Memory Ceiling**: Unity WebGL build heap ≤ 256MB (browser tab friendly); Android WebView process ≤ 512MB total
-- **Build Size**: WebGL initial download ≤ 15MB gzipped (Brotli preferred); APK ≤ 60MB
+- **Memory Ceiling**: Unity WebGL build heap ≤ 256MB (browser tab friendly); mobile WebView process ≤ 512MB total
+- **Build Size**: WebGL initial download ≤ 15MB gzipped (Brotli preferred)
 - **Gemini Latency Budget**: p95 ≤ 4s per call end-to-end (show streaming monologue to hide it); 8s hard timeout with retry-once + fallback UI
 
 ## Testing
@@ -81,10 +82,9 @@
 ## Architecture Decisions Log
 
 <!-- Quick reference linking to full ADRs in docs/architecture/ -->
-- [No ADRs yet — use /architecture-decision to create one]
+- [ADR-0001](../../docs/architecture/ADR-0001-korean-ime-strategy.md) — Korean IME Strategy for Unity WebGL (Proposed) — HTML `<input>` overlay + `.jslib` bridge, validated on Day 1–2
 
-**Known ADRs to author before implementation:**
-1. **Korean IME strategy** — HTML input overlay + `.jslib` bridge vs Flutter-side input field piped to Unity
+**Remaining ADRs to author:**
 2. **Bridge message protocol** — JSON schema shared between Unity C#, JS glue, Flutter Dart
 3. **Gemini call architecture** — proxy through Flutter (hide API key) vs direct from WebGL (faster, key exposed); cost/security tradeoff
 4. **Action executor model** — interpreter loop vs state machine with verb handlers
