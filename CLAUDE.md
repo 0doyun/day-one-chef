@@ -5,14 +5,18 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 
 ## Technology Stack
 
-- **Engine**: [CHOOSE: Godot 4 / Unity / Unreal Engine 5]
-- **Language**: [CHOOSE: GDScript / C# / C++ / Blueprint]
+- **Engine**: Unity 6.3 LTS
+- **Language**: C#
 - **Version Control**: Git with trunk-based development
-- **Build System**: [SPECIFY after choosing engine]
-- **Asset Pipeline**: [SPECIFY after choosing engine]
+- **Build System**: Unity Build Pipeline (WebGL primary, Android APK secondary)
+- **Asset Pipeline**: Unity Asset Import Pipeline + Addressables
+- **Shell/Client**: Flutter + Riverpod (Android APK) hosting Unity WebGL via WebView
+- **AI Backend**: Gemini 2.5 Flash API
 
-> **Note**: Engine-specialist agents exist for Godot, Unity, and Unreal with
-> dedicated sub-specialists. Use the set matching your engine.
+> **Architecture focus**: The Flutter ↔ Unity WebView ↔ JS bridge is a primary
+> design surface of this project. Preserve clean, demonstrable bidirectional
+> messaging between the Flutter shell and the Unity game — do not short-circuit
+> the bridge for convenience.
 
 ## Project Structure
 
@@ -20,7 +24,7 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 
 ## Engine Version Reference
 
-@docs/engine-reference/godot/VERSION.md
+@docs/engine-reference/unity/VERSION.md
 
 ## Technical Preferences
 
