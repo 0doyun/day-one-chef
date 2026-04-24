@@ -24,6 +24,7 @@ namespace DayOneChef.Editor
         private const string RecipeDir = "Assets/Data/Recipes";
         private const string OrderDir = "Assets/Data/Orders";
         private const string CatalogPath = "Assets/Data/OrderCatalog.asset";
+        private const string GeminiConfigPath = "Assets/Data/GeminiConfig.asset";
 
         [MenuItem("Tools/Day One Chef/Generate Game Data")]
         public static void GenerateAll()
@@ -34,12 +35,14 @@ namespace DayOneChef.Editor
             var recipes = GenerateRecipes(ingredients);
             var orders = GenerateOrders(recipes);
             GenerateCatalog(orders);
+            EnsureGeminiConfig();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log(
                 $"[GameDataGenerator] Done. ingredients={ingredients.Count} " +
-                $"recipes={recipes.Count} orders={orders.Count} catalog={CatalogPath}");
+                $"recipes={recipes.Count} orders={orders.Count} catalog={CatalogPath} " +
+                $"geminiConfig={GeminiConfigPath}");
         }
 
         private static void EnsureDirectories()
@@ -190,6 +193,19 @@ namespace DayOneChef.Editor
             }
             catalog.Configure(orders.ToArray());
             EditorUtility.SetDirty(catalog);
+        }
+
+        private static void EnsureGeminiConfig()
+        {
+            // Create with defaults if missing; leave existing assets alone
+            // so user-tuned values (temperature, timeout) survive re-runs.
+            var config = AssetDatabase.LoadAssetAtPath<GeminiConfig>(GeminiConfigPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<GeminiConfig>();
+                AssetDatabase.CreateAsset(config, GeminiConfigPath);
+                EditorUtility.SetDirty(config);
+            }
         }
 
         private static IngredientDefinition UpsertIngredient(
