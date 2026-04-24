@@ -23,6 +23,20 @@ final gameResultsProvider =
   return GameResultsNotifier();
 });
 
+class SessionSummary {
+  const SessionSummary({
+    required this.successCount,
+    required this.failCount,
+    required this.totalRounds,
+  });
+
+  final int successCount;
+  final int failCount;
+  final int totalRounds;
+}
+
+final sessionSummaryProvider = StateProvider<SessionSummary?>((ref) => null);
+
 class GameResultsNotifier extends StateNotifier<List<GameResult>> {
   GameResultsNotifier() : super(const []);
 
