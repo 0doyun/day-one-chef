@@ -28,6 +28,24 @@ namespace DayOneChef.Editor
         {
             EnsureWhiteSquareSprite();
 
+            // Ensure NotoSansKR SDF is freshly baked before the scene
+            // captures font references. Running the menu entry out of
+            // order (Setup without Install first) or with a stale asset
+            // from a previous range will otherwise leave the labels
+            // pointing at LiberationSans SDF and every 한글 glyph tofus.
+            KoreanFontSetup.InstallKoreanFont();
+
+            var koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontAssetPath);
+            if (koreanFont == null)
+            {
+                Debug.LogError(
+                    $"[MainKitchenSetup] {KoreanFontAssetPath} did not load after " +
+                    "KoreanFontSetup.InstallKoreanFont(). Aborting — the labels need " +
+                    "this asset for Hangul rendering.");
+                return;
+            }
+            Debug.Log($"[MainKitchenSetup] Using NotoSansKR SDF with {koreanFont.glyphTable?.Count ?? 0} glyphs.");
+
             var scene = EditorSceneManager.NewScene(
                 NewSceneSetup.DefaultGameObjects,
                 NewSceneMode.Single);
@@ -38,15 +56,15 @@ namespace DayOneChef.Editor
             cameraGo.GetComponent<CameraFollow>().Target = playerGo.transform;
 
             CreateStation("Station_Fridge",       StationType.Fridge,       "냉장고",
-                new Vector3(-7f,  4f, 0f), new Color(0.56f, 0.79f, 0.90f, 1f));
+                new Vector3(-7f,  4f, 0f), new Color(0.56f, 0.79f, 0.90f, 1f), koreanFont);
             CreateStation("Station_CuttingBoard", StationType.CuttingBoard, "도마",
-                new Vector3(-3f,  4f, 0f), new Color(0.80f, 0.63f, 0.42f, 1f));
+                new Vector3(-3f,  4f, 0f), new Color(0.80f, 0.63f, 0.42f, 1f), koreanFont);
             CreateStation("Station_Stove",        StationType.Stove,        "화구",
-                new Vector3( 3f,  4f, 0f), new Color(0.90f, 0.40f, 0.30f, 1f));
+                new Vector3( 3f,  4f, 0f), new Color(0.90f, 0.40f, 0.30f, 1f), koreanFont);
             CreateStation("Station_Assembly",     StationType.Assembly,     "조립대",
-                new Vector3( 7f,  4f, 0f), new Color(0.85f, 0.85f, 0.85f, 1f));
+                new Vector3( 7f,  4f, 0f), new Color(0.85f, 0.85f, 0.85f, 1f), koreanFont);
             CreateStation("Station_Counter",      StationType.Counter,      "카운터",
-                new Vector3( 0f, -4f, 0f), new Color(0.45f, 0.75f, 0.55f, 1f));
+                new Vector3( 0f, -4f, 0f), new Color(0.45f, 0.75f, 0.55f, 1f), koreanFont);
 
             var sceneDir = Path.GetDirectoryName(ScenePath);
             if (!string.IsNullOrEmpty(sceneDir)) Directory.CreateDirectory(sceneDir);
@@ -106,7 +124,7 @@ namespace DayOneChef.Editor
         }
 
         private static void CreateStation(string name, StationType type, string label,
-                                           Vector3 pos, Color color)
+                                           Vector3 pos, Color color, TMP_FontAsset koreanFont)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
             var go = new GameObject(name);
@@ -131,47 +149,64 @@ namespace DayOneChef.Editor
                 1f / go.transform.localScale.y,
                 1f);
             var tmp = labelGo.AddComponent<TextMeshPro>();
+            // Assign the font BEFORE any text. TMP's internal material
+            // caches pick the first font they see at text-layout time,
+            // and setting .text before .font leaves the label bound to
+            // LiberationSans SDF's material even after reassignment.
+            tmp.font = koreanFont;
             tmp.text = label;
             tmp.fontSize = 4f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = Color.black;
-            var koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontAssetPath);
-            if (koreanFont != null) tmp.font = koreanFont;
             tmp.sortingOrder = 11;
+            EditorUtility.SetDirty(tmp);
         }
 
         private static void EnsureWhiteSquareSprite()
         {
-            if (File.Exists(WhiteSquarePath))
-            {
-                return;
-            }
-
             Directory.CreateDirectory(SpriteDir);
 
-            var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-            var pixels = new Color32[16];
-            for (var i = 0; i < pixels.Length; i++)
+            if (!File.Exists(WhiteSquarePath))
             {
-                pixels[i] = new Color32(255, 255, 255, 255);
+                var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+                var pixels = new Color32[16];
+                for (var i = 0; i < pixels.Length; i++)
+                {
+                    pixels[i] = new Color32(255, 255, 255, 255);
+                }
+                tex.SetPixels32(pixels);
+                tex.Apply();
+                File.WriteAllBytes(WhiteSquarePath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.Refresh();
             }
-            tex.SetPixels32(pixels);
-            tex.Apply();
-            File.WriteAllBytes(WhiteSquarePath, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.Refresh();
 
+            // Always reassert the importer settings. A 4 px source at the
+            // default PPU of 100 rendered the player and stations as
+            // single-pixel dots. PPU 4 makes one texel equal one world
+            // unit so `localScale = (2.2, 1.6)` produces sprites that
+            // visibly occupy 2.2 × 1.6 world units.
             var importer = (TextureImporter)AssetImporter.GetAtPath(WhiteSquarePath);
             if (importer == null)
             {
                 Debug.LogError($"[MainKitchenSetup] TextureImporter missing for {WhiteSquarePath}.");
                 return;
             }
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Single;
-            importer.filterMode = FilterMode.Point;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.SaveAndReimport();
+            var needsReimport =
+                importer.textureType != TextureImporterType.Sprite ||
+                importer.spriteImportMode != SpriteImportMode.Single ||
+                importer.filterMode != FilterMode.Point ||
+                importer.textureCompression != TextureImporterCompression.Uncompressed ||
+                !Mathf.Approximately(importer.spritePixelsPerUnit, 4f);
+            if (needsReimport)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.filterMode = FilterMode.Point;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.spritePixelsPerUnit = 4f;
+                importer.SaveAndReimport();
+            }
         }
 
         private static void RegisterSceneInBuildSettings(string path)
