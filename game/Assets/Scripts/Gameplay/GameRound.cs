@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using DayOneChef.Bridge;
 using DayOneChef.Gameplay.AI;
 using DayOneChef.Gameplay.Data;
 
@@ -72,6 +73,9 @@ namespace DayOneChef.Gameplay
         /// </summary>
         public void SetClient(IGeminiClient client) => _client = client;
 
+        private int _successCount;
+        private int _failCount;
+
         private void Start()
         {
             if (_catalog == null)
@@ -80,6 +84,33 @@ namespace DayOneChef.Gameplay
                 return;
             }
             _queue = new OrderQueue(_catalog.Orders);
+            RebuildKitchen();
+            PresentCurrentOrder();
+        }
+
+        private void OnEnable()
+        {
+            BridgeIncoming.OnResetRoundRequested += HandleResetRoundFromBridge;
+            BridgeIncoming.OnSessionRestartRequested += HandleSessionRestartFromBridge;
+        }
+
+        private void OnDisable()
+        {
+            BridgeIncoming.OnResetRoundRequested -= HandleResetRoundFromBridge;
+            BridgeIncoming.OnSessionRestartRequested -= HandleSessionRestartFromBridge;
+        }
+
+        private void HandleResetRoundFromBridge()
+        {
+            RebuildKitchen();
+            PresentCurrentOrder();
+        }
+
+        private void HandleSessionRestartFromBridge()
+        {
+            _queue = new OrderQueue(_catalog.Orders);
+            _successCount = 0;
+            _failCount = 0;
             RebuildKitchen();
             PresentCurrentOrder();
         }
@@ -112,6 +143,7 @@ namespace DayOneChef.Gameplay
                 _availableIngredientsForPrompt,
                 _availableStationsForPrompt);
 
+            string failureReason = null;
             try
             {
                 var client = _client ?? CreateDefaultClient();
@@ -125,11 +157,42 @@ namespace DayOneChef.Gameplay
             }
             catch (GeminiCallException ex)
             {
+                failureReason = ex.Message;
                 Debug.LogError($"[GameRound] Gemini call failed — round invalidated per GDD §4.3: {ex.Message}");
             }
             finally
             {
+                EmitRoundEnd(order, instruction, failureReason);
                 AdvanceRound();
+            }
+        }
+
+        private void EmitRoundEnd(Order order, string instruction, string failureReason)
+        {
+            // Day 11 evaluator (call #2) fills success/reason properly.
+            // Until then, we publish the round with `success=false,
+            // reason="pending evaluator"` unless the Gemini call itself
+            // failed outright. Flutter still sees a `round_end` per
+            // round and can display event_log / instruction / orderId.
+            var success = false;
+            var reason = failureReason ?? "pending evaluator (Day 11)";
+            if (success) _successCount++; else _failCount++;
+
+            var eventLogJson = _lastEventLog?.ToJson() ?? "{\"entries\":[]}";
+            UnityBridge.Send(BridgeMessage.RoundEnd(
+                orderId: order?.OrderId ?? string.Empty,
+                orderTitle: order?.Recipe?.DisplayName ?? string.Empty,
+                roundIndex: RoundIndex,
+                totalRounds: TotalRounds,
+                instruction: instruction ?? string.Empty,
+                success: success,
+                reason: reason,
+                eventLogJson: eventLogJson));
+
+            var isFinal = (RoundIndex + 1) >= TotalRounds;
+            if (isFinal)
+            {
+                UnityBridge.Send(BridgeMessage.SessionEnd(_successCount, _failCount, TotalRounds));
             }
         }
 

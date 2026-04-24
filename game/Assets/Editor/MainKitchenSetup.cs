@@ -13,6 +13,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using System.Collections.Generic;
+using DayOneChef.Bridge;
 using DayOneChef.Gameplay;
 using DayOneChef.Gameplay.Data;
 
@@ -94,6 +95,7 @@ namespace DayOneChef.Editor
 
             var geminiConfig = AssetDatabase.LoadAssetAtPath<GeminiConfig>(GeminiConfigPath);
             var ingredientDefs = LoadIngredientDefinitions();
+            CreateBridgeReceiver();
             var gameRound = CreateGameRoot(
                 catalog, customerGo.GetComponent<Customer>(), geminiConfig, ingredientDefs);
             var posterGo = new GameObject("DebugInstructionPoster");
@@ -264,6 +266,22 @@ namespace DayOneChef.Editor
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             return round;
+        }
+
+        private static void CreateBridgeReceiver()
+        {
+            // Flutter sends messages with
+            //   unityInstance.SendMessage('BridgeReceiver', 'MethodName', '')
+            // so the GameObject name must be stable across builds — do
+            // not rename without updating the Flutter side in
+            // app/lib/src/shell/flutter_bridge.dart.
+            var existing = GameObject.Find("BridgeReceiver");
+            if (existing == null)
+            {
+                var go = new GameObject("BridgeReceiver");
+                go.AddComponent<BridgeIncoming>();
+                Debug.Log("[MainKitchenSetup] Created BridgeReceiver GameObject.");
+            }
         }
 
         private static IngredientDefinition[] LoadIngredientDefinitions()

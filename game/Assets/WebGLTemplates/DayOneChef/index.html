@@ -53,7 +53,12 @@
         function (progress) {
           loadingLabel.innerText = "Loading… " + Math.round(progress * 100) + "%";
         }
-      ).then(function () {
+      ).then(function (instance) {
+        // Expose the Unity instance so the Flutter host can drive
+        // inbound bridge calls via
+        //   controller.runJavaScript("unityInstance.SendMessage('BridgeReceiver', 'ResetRound', '')")
+        // See docs/architecture/ADR-0002-bridge-message-protocol.md.
+        window.unityInstance = instance;
         loadingLabel.remove();
       }).catch(function (err) {
         loadingLabel.innerText = "Load failed: " + err;

@@ -6,11 +6,12 @@
 // Bidirectional bridge (Unity ↔ JS ↔ Flutter) lands in Day 9 via a
 // JavaScriptChannel registered on this page.
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../game/providers.dart';
+import 'flutter_bridge.dart';
 import 'unity_assets.dart';
 import 'unity_server.dart';
 
@@ -24,6 +25,7 @@ class UnityHostPage extends ConsumerStatefulWidget {
 class _UnityHostPageState extends ConsumerState<UnityHostPage> {
   UnityServer? _server;
   WebViewController? _controller;
+  FlutterBridge? _bridge;
   String? _error;
   int _loadPercent = 0;
 
@@ -64,6 +66,7 @@ class _UnityHostPageState extends ConsumerState<UnityHostPage> {
             },
           ),
         );
+      final bridge = FlutterBridge(ref: ref, controller: controller)..attach();
       try {
         await controller.setBackgroundColor(const Color(0xFF1A1A1A));
       } on UnimplementedError {
@@ -74,6 +77,7 @@ class _UnityHostPageState extends ConsumerState<UnityHostPage> {
       setState(() {
         _server = server;
         _controller = controller;
+        _bridge = bridge;
       });
     } catch (e, st) {
       // Widen the catch to Object — errors like `UnimplementedError`
@@ -132,7 +136,70 @@ class _UnityHostPageState extends ConsumerState<UnityHostPage> {
               backgroundColor: Colors.transparent,
             ),
           ),
+        Positioned(
+          right: 12, bottom: 12,
+          child: _BridgeControls(
+            bridge: _bridge,
+            results: ref.watch(gameResultsProvider),
+            summary: ref.watch(sessionSummaryProvider),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _BridgeControls extends StatelessWidget {
+  const _BridgeControls({
+    required this.bridge,
+    required this.results,
+    required this.summary,
+  });
+
+  final FlutterBridge? bridge;
+  final List<dynamic> results;
+  final SessionSummary? summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final br = bridge;
+    if (br == null) return const SizedBox.shrink();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              summary == null
+                  ? '라운드 수신: ${results.length}'
+                  : '세션 완료: ${summary!.successCount}/${summary!.totalRounds}',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white70, minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                  onPressed: () => br.sendResetRound(),
+                  child: const Text('라운드 리셋', style: TextStyle(fontSize: 11)),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white70, minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                  onPressed: () => br.sendRestartSession(),
+                  child: const Text('세션 재시작', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
