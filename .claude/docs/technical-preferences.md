@@ -82,7 +82,7 @@
 ## Architecture Decisions Log
 
 <!-- Quick reference linking to full ADRs in docs/architecture/ -->
-- [ADR-0001](../../docs/architecture/ADR-0001-korean-ime-strategy.md) — Korean IME Strategy for Unity WebGL (Proposed) — HTML `<input>` overlay + `.jslib` bridge, validated on Day 1–2
+- [ADR-0001](../../docs/architecture/ADR-0001-korean-ime-strategy.md) — Korean IME Strategy for Unity WebGL (Accepted 2026-04-24) — kou-yeung/WebGLInput adopted after Phase 1 macOS Chrome + Safari PASS
 
 **Remaining ADRs to author:**
 2. **Bridge message protocol** — JSON schema shared between Unity C#, JS glue, Flutter Dart

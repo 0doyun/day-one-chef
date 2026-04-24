@@ -165,18 +165,29 @@ the Phase-2 decision at the end of Step 5 has evidence to act on.
 | Date | Platform | Method | Result | Notes |
 |------|----------|--------|--------|-------|
 | 2026-04-24 | Chrome 127 · macOS 26 | Copy-paste | **PASS** | Test string round-tripped exactly. Glyphs rendered as tofu (font issue, see Known Issues). |
-| — | Safari · macOS 26 | — | — | — |
-| — | Firefox · macOS 26 | — | — | — |
+| 2026-04-24 | Safari · macOS 26 | Copy-paste | **PASS** | Round-trip successful. Same tofu rendering caveat as Chrome. |
+| — | Firefox · macOS 26 | — | DEFERRED | Covered by buffer Day 10. Firefox uses the same DOM composition event API as Chrome; low additional risk. |
 
 ### iOS (Step 4)
 
 | Date | Target | Method | Result | Notes |
 |------|--------|--------|--------|-------|
-| — | iOS Simulator · Safari WKWebView | — | — | — |
+| — | iOS Simulator · Safari WKWebView | — | DEFERRED | Re-test when the Flutter shell is integrated on Day 8–9. The real delivery target is `webview_flutter` + iOS WKWebView; testing standalone Simulator Safari before the Flutter shell exists would be duplicated effort. |
 
 ## Verdict (updated as rows fill in)
 
 - **Chrome desktop**: PASS (2026-04-24, copy-paste round-trip)
-- **Safari desktop**: pending
-- **Firefox desktop**: pending
-- **iOS Simulator WKWebView**: pending
+- **Safari desktop**: PASS (2026-04-24, copy-paste round-trip)
+- **Firefox desktop**: deferred — buffer Day 10
+- **iOS Simulator WKWebView**: deferred — Day 8–9 when Flutter shell lands
+
+### Phase 1 summary
+
+Both macOS flagship browsers (Chrome, Safari) pass the clipboard round-trip
+acceptance test on the first run, with zero dropped or duplicated jamo.
+kou-yeung/WebGLInput is adopted as the Phase 1 IME backend. The outstanding
+Firefox + iOS WKWebView rows are intentionally deferred rather than skipped
+— the ADR's Rollback plan remains the escape hatch if either of those
+platforms fails later in the timeline.
+
+ADR-0001 advances from `Proposed` to `Accepted` on this evidence.
