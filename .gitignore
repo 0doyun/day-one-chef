@@ -43,6 +43,35 @@ game/Assets/Scenes/MainKitchen.unity.meta
 game/Assets/Sprites/WhiteSquare.png
 game/Assets/Sprites/WhiteSquare.png.meta
 
+# === Unity WebGL build copy for the Flutter shell ===
+# app/assets/unity/ is populated from game/Build/webgl-main/ by the
+# scripts/sync-unity-to-app.sh script. The build output is ~18 MB of
+# binary artefacts and is regenerable — don't commit. The folder
+# itself stays tracked via .gitkeep so Flutter can resolve its
+# assets: declaration on a fresh clone.
+app/assets/unity/Build/
+app/assets/unity/index.html
+app/assets/unity/TemplateData/
+
+# === Flutter generated files ===
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Runner.xcworkspace/xcuserdata/
+app/ios/Runner.xcodeproj/xcuserdata/
+app/ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+app/macos/Pods/
+app/macos/Flutter/ephemeral/
+app/macos/Runner.xcworkspace/xcuserdata/
+app/macos/Runner.xcodeproj/xcuserdata/
+app/.idea/
+
 # === Internal Planning (not for public) ===
 
 expansions/

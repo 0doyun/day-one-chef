@@ -1,0 +1,8 @@
+# Unity WebGL build output lands here.
+#
+# On a fresh clone this directory is empty by design — the Unity build
+# is regenerable via ./scripts/sync-unity-to-app.sh (which first runs
+# ./scripts/build-webgl-main.sh if the build is missing).
+#
+# The Flutter app extracts whatever is in here to an OS-level cache
+# directory at startup via lib/src/shell/unity_assets.dart.

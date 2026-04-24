@@ -1,0 +1,41 @@
+name: day_one_chef
+description: "Day One Chef — Flutter shell hosting Unity WebGL via WebView."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management — Riverpod, per GDD tech stack
+  flutter_riverpod: ^2.6.1
+
+  # WebView host for the Unity WebGL build. Platform-specific
+  # subpackages (webview_flutter_android / webview_flutter_wkwebview)
+  # are pulled transitively at their compatible versions.
+  webview_flutter: ^4.10.0
+
+  # Local HTTPS-less loopback server for the Unity build. Unity WebGL's
+  # compressed .unityweb payloads need Content-Encoding headers set
+  # correctly; serving from a real HTTP server avoids the MIME / gzip
+  # guesswork of file:// URLs on both platforms.
+  shelf: ^1.4.2
+  shelf_static: ^1.1.3
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/unity/
+    - assets/unity/Build/
