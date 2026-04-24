@@ -27,6 +27,12 @@ game/Build/
 game/Assets/Fonts/NotoSansKR SDF.asset
 game/Assets/Fonts/NotoSansKR SDF.asset.meta
 
+# === Stray top-level probe scene from the initial manual walkthrough ===
+# Authoritative scene is game/Assets/Scenes/OSS_IME_Probe.unity — ignore
+# any copy Unity regenerates at game/Assets/OSS_IME_Probe.unity.
+game/Assets/OSS_IME_Probe.unity
+game/Assets/OSS_IME_Probe.unity.meta
+
 # === Internal Planning (not for public) ===
 
 expansions/
