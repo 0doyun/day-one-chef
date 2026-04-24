@@ -24,6 +24,7 @@ namespace DayOneChef.Editor
         private const string WhiteSquarePath = "Assets/Sprites/WhiteSquare.png";
         private const string KoreanFontAssetPath = "Assets/Fonts/NotoSansKR SDF.asset";
         private const string OrderCatalogPath = "Assets/Data/OrderCatalog.asset";
+        private const string GeminiConfigPath = "Assets/Data/GeminiConfig.asset";
 
         [MenuItem("Tools/Day One Chef/Setup Main Kitchen")]
         public static void Setup()
@@ -89,8 +90,12 @@ namespace DayOneChef.Editor
                 new Color(0.85f, 0.60f, 0.90f, 1f),
                 koreanFont);
 
-            var gameRound = CreateGameRoot(catalog, customerGo.GetComponent<Customer>());
-            _ = gameRound;
+            var geminiConfig = AssetDatabase.LoadAssetAtPath<GeminiConfig>(GeminiConfigPath);
+            var gameRound = CreateGameRoot(catalog, customerGo.GetComponent<Customer>(), geminiConfig);
+            var posterGo = new GameObject("DebugInstructionPoster");
+            var poster = posterGo.AddComponent<DebugInstructionPoster>();
+            poster.Bind(gameRound);
+            EditorUtility.SetDirty(poster);
 
             var sceneDir = Path.GetDirectoryName(ScenePath);
             if (!string.IsNullOrEmpty(sceneDir)) Directory.CreateDirectory(sceneDir);
@@ -233,11 +238,11 @@ namespace DayOneChef.Editor
             return go;
         }
 
-        private static GameRound CreateGameRoot(OrderCatalog catalog, Customer customer)
+        private static GameRound CreateGameRoot(OrderCatalog catalog, Customer customer, GeminiConfig geminiConfig)
         {
             var root = new GameObject("GameRoot");
             var round = root.AddComponent<GameRound>();
-            round.Bind(catalog, customer);
+            round.Bind(catalog, customer, geminiConfig);
             EditorUtility.SetDirty(round);
             return round;
         }
