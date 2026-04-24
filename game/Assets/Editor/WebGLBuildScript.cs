@@ -7,7 +7,9 @@
 // Production deploy (Vercel) can flip back to Brotli.
 
 #if UNITY_EDITOR
+using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
@@ -19,6 +21,7 @@ namespace DayOneChef.Editor
         private const string ProbeOutputDir = "Build/webgl-ime-probe";
         private const string MainScenePath = "Assets/Scenes/MainKitchen.unity";
         private const string MainOutputDir = "Build/webgl-main";
+        private const string MainProdOutputDir = "Build/webgl-main-prod";
 
         public static void BuildWebGL()
         {
@@ -52,6 +55,27 @@ namespace DayOneChef.Editor
             RunBuild(MainScenePath, MainOutputDir);
         }
 
+        /// <summary>
+        /// Production WebGL build — same scene + settings as
+        /// <see cref="BuildWebGLMain"/>, but compressed with Brotli and
+        /// no decompression fallback. Brotli beats Gzip by roughly
+        /// 15 – 20 % on Unity's WASM + data payload and lands the build
+        /// near the ≤ 15 MB GDD budget. Requires HTTPS delivery so
+        /// browsers accept `Content-Encoding: br` — use this for Vercel
+        /// / TestFlight builds, not for `python3 -m http.server` loops.
+        /// </summary>
+        public static void BuildWebGLMainProd()
+        {
+            ApplyCommonWebGLSettings();
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = false;
+
+            KoreanFontSetup.InstallKoreanFont();
+            MainKitchenSetup.Setup();
+
+            RunBuild(MainScenePath, MainProdOutputDir);
+        }
+
         private static void ApplyCommonWebGLSettings()
         {
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
@@ -64,6 +88,23 @@ namespace DayOneChef.Editor
             // well-supported by current browsers and still within
             // mobile-WKWebView comfort.
             PlayerSettings.WebGL.memorySize = 512;
+
+            // Size optimisation knobs (GDD performance budget: ≤ 15 MB
+            // gzipped). `stripEngineCode` drops unused engine modules
+            // from the WASM binary; `Medium` managed stripping runs
+            // IL2CPP's dead-code pass without breaking TMP reflection.
+            // `High` strips more but has tripped TMP_FontAsset material
+            // construction in past projects — raise to High only with a
+            // link.xml once we have a working baseline.
+            PlayerSettings.stripEngineCode = true;
+            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.WebGL, ManagedStrippingLevel.Medium);
+
+            // Custom HTML shell — Unity's default template ships a
+            // fullscreen button, progress bar image, and Unity branding
+            // that add ~40 KB of template overhead and don't suit the
+            // eventual Flutter WebView host. Project template is a
+            // minimal canvas + loading text.
+            PlayerSettings.WebGL.template = "PROJECT:DayOneChef";
         }
 
         private static void RunBuild(string scenePath, string outputDir)
@@ -86,10 +127,47 @@ namespace DayOneChef.Editor
                 $"totalSize={summary.totalSize} " +
                 $"errors={summary.totalErrors} warnings={summary.totalWarnings}");
 
-            if (summary.result != BuildResult.Succeeded)
+            if (summary.result == BuildResult.Succeeded)
+            {
+                LogOutputSizeBreakdown(outputDir);
+            }
+            else
             {
                 EditorApplication.Exit(1);
             }
+        }
+
+        private static void LogOutputSizeBreakdown(string outputDir)
+        {
+            if (!Directory.Exists(outputDir))
+            {
+                Debug.LogWarning($"[WebGLBuildScript] Output dir missing: {outputDir}");
+                return;
+            }
+
+            long total = 0;
+            long buildBytes = 0;
+            long templateBytes = 0;
+            foreach (var file in Directory.GetFiles(outputDir, "*", SearchOption.AllDirectories))
+            {
+                var size = new FileInfo(file).Length;
+                total += size;
+                var rel = Path.GetRelativePath(outputDir, file);
+                if (rel.StartsWith("Build")) buildBytes += size;
+                else templateBytes += size;
+            }
+
+            Debug.Log(
+                $"[WebGLBuildScript] Size report — total={Format(total)} " +
+                $"Build/={Format(buildBytes)} template+other={Format(templateBytes)} " +
+                $"(budget: ≤ 15 MB gzipped per technical-preferences.md)");
+        }
+
+        private static string Format(long bytes)
+        {
+            if (bytes > 1024L * 1024) return $"{bytes / 1024.0 / 1024.0:F2} MB";
+            if (bytes > 1024) return $"{bytes / 1024.0:F1} KB";
+            return $"{bytes} B";
         }
     }
 }
