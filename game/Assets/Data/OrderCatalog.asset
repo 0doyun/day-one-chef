@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc9688cb27c5d49908f63fb1fe980aad, type: 3}
+  m_Name: OrderCatalog
+  m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.OrderCatalog
+  _orders:
+  - {fileID: 11400000, guid: ea62c334dcc2442d7b40b26870f7c722, type: 2}
+  - {fileID: 11400000, guid: f66c9fe8df3ee431bac187986414e235, type: 2}
+  - {fileID: 11400000, guid: 8ef809656ab8a49638cf9b87c90ea45b, type: 2}
+  - {fileID: 11400000, guid: 547b8f9c5310c4094bbbebce9c00681b, type: 2}
+  - {fileID: 11400000, guid: b44f38660543b46509b8f1681dde4c43, type: 2}
