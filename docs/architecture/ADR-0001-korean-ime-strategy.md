@@ -18,7 +18,7 @@ Solo developer (project owner).
 
 ## Summary
 
-Unity WebGL's built-in text input (`TMP_InputField`, `InputField`) drops hangul characters mid-composition on every major browser — this is acknowledged in Unity's own manual ("Input via IME is currently not supported on the Web platform") and tracked in the Unity Issue Tracker. The project cannot rely on it for the single-line Korean instruction field that drives the entire core loop. Solution strategy is **OSS-first, DIY-fallback**: on Day 1 evaluate mature open-source libraries (primary candidate: Unity Japan team's `unity3d-jp/WebGLNativeInputField`) against the Korean 2-Set composition validation matrix. If an OSS library passes validation, adopt it and spend the freed time on the custom bridge story. If none pass, fall back to the DIY approach specified in this ADR: an HTML `<input>` overlay + `.jslib` bridge routing browser IME composition events into Unity. Either path yields the same Unity-side contract, so downstream work is unaffected.
+Unity WebGL's built-in text input (`TMP_InputField`, `InputField`) drops hangul characters mid-composition on every major browser — this is acknowledged in Unity's own manual ("Input via IME is currently not supported on the Web platform") and tracked in the Unity Issue Tracker. The project cannot rely on it for the single-line Korean instruction field that drives the entire core loop. Solution strategy is **OSS-first, DIY-fallback**: on Day 1 evaluate mature open-source libraries (primary candidate: `kou-yeung/WebGLInput` — selected over `unity3d-jp/WebGLNativeInputField` after hands-on inspection because it ships with `TMP_InputField` support, installs as a UPM Git package, explicitly targets Unity 2023.2+ (compatible with 6.3 LTS), and was last updated 2025-12; the Unity Japan library is UGUI-only and 2+ years stale) against the Korean 2-Set composition validation matrix. If an OSS library passes validation, adopt it and spend the freed time on the custom bridge story. If none pass, fall back to the DIY approach specified in this ADR: an HTML `<input>` overlay + `.jslib` bridge routing browser IME composition events into Unity. Either path yields the same Unity-side contract (`IKoreanImeBridge`), so downstream work is unaffected.
 
 ## Engine Compatibility
 
@@ -75,7 +75,7 @@ No text input is implemented. `TMP_InputField` in Unity WebGL has been confirmed
 Adopt a **two-phase decision**:
 
 **Phase 1 — Day 1 OSS evaluation (time-boxed to 2 hours).**
-Integrate `unity3d-jp/WebGLNativeInputField` (maintained by the Unity Japan team) into a throwaway scene and run the Korean 2-Set validation matrix in Validation Criteria. If it passes the full matrix — desktop Chrome/Safari/Firefox and iOS Flutter WKWebView — adopt it as-is and stop.
+Integrate `kou-yeung/WebGLInput` (primary candidate — see Summary) into a throwaway scene with a `TMP_InputField` wrapped by its `WebGLInput` component and run the Korean 2-Set validation matrix in Validation Criteria. If it passes the full matrix — desktop Chrome/Safari/Firefox and iOS Flutter WKWebView — adopt it as-is and stop. If it fails, the Alternatives Considered §Alternative 5 list names fallback OSS candidates to try before escalating to Phase 2.
 
 **Phase 2 — Fallback DIY (only if Phase 1 fails).**
 Build the HTML overlay directly: render a transparent-bordered HTML `<input type="text">` element as an absolutely-positioned overlay pinned to the instruction box region of the Unity canvas. The overlay owns Korean IME composition natively through the browser. On `compositionend` (for IME finalization) and on `input` (for direct ASCII and backspace), the overlay's JavaScript pushes the current value into Unity via `SendMessage` on a dedicated C# GameObject. Unity treats the input box as a *view only* of the overlay's state — it never authors characters itself.
@@ -235,9 +235,9 @@ public sealed class KoreanImeBridge : MonoBehaviour
 
 ### Alternative 5: Blindly adopt a single OSS library without fallback
 
-- **Description**: Pick one of the mature OSS Unity WebGL IME libraries and commit to it without a DIY fallback path. Candidates surveyed:
-  - [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. Two modes (popup via `window.prompt` or overlay HTML). Primary candidate for Phase 1 in the current decision.
-  - [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — most popular community solution. TMP support since Unity 2018.2.
+- **Description**: Pick one of the mature OSS Unity WebGL IME libraries and commit to it without a DIY fallback path. Candidates surveyed (ordered by fit for this project):
+  - [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — **chosen primary for Phase 1**. TMP support (`WrappedTMPInputField`), UPM Git package (`https://github.com/kou-yeung/WebGLInput.git?path=Assets/WebGLSupport`), Unity 2023.2+ target (compatible with Unity 6.3 LTS), 200+ merged PRs, last updated 2025-12, MIT. Experimental mobile + UI Toolkit support.
+  - [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. Two modes (popup via `window.prompt` or overlay HTML). Demoted from primary after hands-on inspection: no TMP support (UGUI `InputField` only), no UPM packaging, last commit 2024-03. Still a credible fallback if Phase 1 primary breaks on an edge case.
   - [`decentraland/webgl-ime-input`](https://github.com/decentraland/webgl-ime-input) — production-validated (Decentraland, a live commercial metaverse).
   - `WebGLSupport` — general-purpose WebGL helper package that includes IME handling.
   - [`rehanlabs/Unity-WebGL-HTML-InputFix`](https://github.com/rehanlabs/Unity-WebGL-HTML-InputFix) — community HTML input bridge.
@@ -299,8 +299,12 @@ This is a greenfield decision — no prior implementation to migrate from.
 
 ### Phase 1 — Day 1 OSS evaluation (time-boxed ~2 hours)
 
-1. Add `unity3d-jp/WebGLNativeInputField` as a dependency (via UPM git URL or `.unitypackage`). Place under `game/Assets/Plugins/` — do not vendor into `Assets/Scripts/` so license boundary stays clean.
-2. Create a throwaway scene `OSS_IME_Probe.unity` with a single `TMP_InputField` wrapped by the library's component. No project integration yet.
+1. Add `kou-yeung/WebGLInput` as a dependency via UPM Git URL. Entry already committed to `game/Packages/manifest.json`:
+   ```json
+   "com.github.kou-yeung": "https://github.com/kou-yeung/WebGLInput.git?path=Assets/WebGLSupport"
+   ```
+   Opening the Unity project triggers automatic import into `Packages/` (UPM cache, not under `Assets/`) so the license boundary and source tree stay clean. `packages-lock.json` will pin the resolved commit on first open.
+2. Create a throwaway scene `OSS_IME_Probe.unity` with a single `TMP_InputField` plus kou-yeung's `WebGLInput` component attached. See `docs/phase-1-ime-evaluation-protocol.md` for the full scene setup checklist.
 3. Build WebGL → serve locally → run the Korean test string (`"안녕하세요 계란찜 먼저 풀어서 물 넣고 쪄줘"`) in Chrome, Safari, Firefox on macOS.
 4. Open the same WebGL build inside a quick `webview_flutter` wrapper on iOS Simulator. (Disable Simulator's hardware keyboard; add the Korean keyboard in simulated iOS Settings so the real IME path is exercised.)
 5. **PASS** (zero dropped jamo on all four platforms) → thin-wrapper the library behind the `KoreanImeBridge` C# contract (§Key Interfaces) so downstream code is ignorant of the backing implementation. Mark ADR `Accepted`. Proceed to Day 3.
@@ -341,11 +345,12 @@ This is a greenfield decision — no prior implementation to migrate from.
 - **Enables**: ADR-0002 (Bridge message protocol) — Unity ↔ JS SendMessage channel contract builds on the same interop mechanism.
 - **Related spec**: [`design/gdd/game-concept.md`](../../design/gdd/game-concept.md) §5, §6.4, §8, §12, §14.
 - **Engine reference**: [`docs/engine-reference/unity/VERSION.md`](../engine-reference/unity/VERSION.md) — Unity 6.3 LTS pin.
-- **Primary Phase 1 candidate**: [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. Popup and overlay modes. Adopt under `game/Assets/Plugins/` if Phase 1 validation passes.
-- **Phase 1 fallback candidates** (if primary fails or is unmaintained at evaluation time):
-  - [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — TMP support since 2018.2
-  - [`decentraland/webgl-ime-input`](https://github.com/decentraland/webgl-ime-input) — production-validated
+- **Primary Phase 1 candidate**: [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — TMP support, UPM git package, Unity 2023.2+ target, actively maintained (2025-12), MIT. Installed via `game/Packages/manifest.json` entry `com.github.kou-yeung`.
+- **Phase 1 fallback OSS candidates** (if primary fails validation):
+  - [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. UGUI only, 2024-03 last commit. Usable but requires switching from TMP to UGUI `InputField` for the instruction box
+  - [`decentraland/webgl-ime-input`](https://github.com/decentraland/webgl-ime-input) — production-validated in a live commercial metaverse
   - [`rehanlabs/Unity-WebGL-HTML-InputFix`](https://github.com/rehanlabs/Unity-WebGL-HTML-InputFix) — generic HTML input bridge
+- **Phase 1 evaluation protocol**: [`docs/phase-1-ime-evaluation-protocol.md`](../phase-1-ime-evaluation-protocol.md) — scene setup, test matrix, pass/fail criteria
 - **Evidence that the problem is real** (Phase 2 justification):
   - [Unity Manual — IME in Unity](https://docs.unity3d.com/Manual/IMEInput.html) — states IME not supported on Web platform
   - [Unity Issue Tracker — IME languages not recognized in WebGL builds](https://issuetracker.unity3d.com/issues/ime-languages-are-not-recognized-when-entering-input-in-mobile-and-webgl-builds-1)
