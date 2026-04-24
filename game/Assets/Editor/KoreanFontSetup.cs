@@ -79,6 +79,53 @@ namespace DayOneChef.Editor
             // attempted.
             BakeCharacterSet(fontAsset);
             fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
+
+            // Register every atlas page as a sub-asset. The full Hangul
+            // block (11 172 glyphs) overflows the first 2048² page and
+            // TMP allocates additional Texture2D atlases — but it does
+            // NOT automatically add them to the asset database. Without
+            // this registration step, pages 2+ are garbage-collected on
+            // the next domain reload and every glyph living on them
+            // renders as tofu at play time (the Console reports
+            // "Font Atlas Texture … is missing"). AddObjectToAsset
+            // serialises them next to the main asset so they survive;
+            // HideInHierarchy keeps them from cluttering the Project
+            // window while still being written to the .asset file.
+            if (fontAsset.atlasTextures != null)
+            {
+                for (var i = 0; i < fontAsset.atlasTextures.Length; i++)
+                {
+                    var atlasTexture = fontAsset.atlasTextures[i];
+                    if (atlasTexture == null) continue;
+                    if (string.IsNullOrEmpty(atlasTexture.name))
+                    {
+                        atlasTexture.name = $"Atlas {i}";
+                    }
+                    atlasTexture.hideFlags = HideFlags.HideInHierarchy;
+                    var existingPath = AssetDatabase.GetAssetPath(atlasTexture);
+                    var alreadyAttached = !string.IsNullOrEmpty(existingPath) && existingPath == FontAssetPath;
+                    if (!alreadyAttached)
+                    {
+                        AssetDatabase.AddObjectToAsset(atlasTexture, fontAsset);
+                    }
+                    Debug.Log(
+                        $"[KoreanFontSetup] Atlas[{i}] name='{atlasTexture.name}' " +
+                        $"size={atlasTexture.width}x{atlasTexture.height} " +
+                        $"wasAttached={alreadyAttached} finalPath={AssetDatabase.GetAssetPath(atlasTexture)}");
+                }
+            }
+
+            // Font material drives the atlas texture reference for
+            // atlas page 0; additional per-page materials live in
+            // fontMaterials[] when multi-atlas is on. Attach the root
+            // material as a sub-asset if it isn't already.
+            if (fontAsset.material != null &&
+                string.IsNullOrEmpty(AssetDatabase.GetAssetPath(fontAsset.material)))
+            {
+                fontAsset.material.hideFlags = HideFlags.HideInHierarchy;
+                AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            }
+
             EditorUtility.SetDirty(fontAsset);
 
             // NOTE: global TMP fallback registration is intentionally skipped.
@@ -91,9 +138,15 @@ namespace DayOneChef.Editor
             RemoveFromFallbacks(fontAsset);
 
             AssetDatabase.SaveAssets();
+            // ForceUpdate re-imports the .asset YAML so sub-asset
+            // additions (atlas pages + material) are picked up by the
+            // AssetDatabase cache before the scene setup step tries to
+            // load this font.
+            AssetDatabase.ImportAsset(FontAssetPath, ImportAssetOptions.ForceUpdate);
             AssetDatabase.Refresh();
             Debug.Log($"[KoreanFontSetup] Done. Atlas mode={fontAsset.atlasPopulationMode}, " +
-                      $"glyph count={fontAsset.glyphTable?.Count ?? 0}");
+                      $"glyph count={fontAsset.glyphTable?.Count ?? 0}, " +
+                      $"atlas pages={fontAsset.atlasTextures?.Length ?? 0}");
         }
 
         private static void BakeCharacterSet(TMP_FontAsset fontAsset)
@@ -103,13 +156,15 @@ namespace DayOneChef.Editor
             // ASCII printable range (space through tilde).
             for (int c = 0x20; c <= 0x7E; c++) sb.Append((char)c);
 
-            // Modern Korean syllable subset — 0xAC00 through 0xBFFF covers
-            // roughly the first 5 400 precomposed Hangul syllables, which
-            // includes every character in typical 2-Set 두벌식 output and all
-            // words in the probe corpus. The tail of the block (0xC000
-            // upward) contains archaic and rarely-used compounds we skip to
-            // stay within the WebGL heap.
-            for (int c = 0xAC00; c <= 0xBFFF; c++) sb.Append((char)c);
+            // Full Hangul Syllables block — 0xAC00 through 0xD7A3 (11 172
+            // precomposed syllables). Earlier revisions stopped at 0xBFFF
+            // to hedge against WebGL heap pressure, but everyday station
+            // labels sit above that cutoff: 조(C870) 장(C7A5) 화(D654)
+            // 카(CE74) 운(C6B4) 터(D130). With SMOOTH_HINTED (Alpha8)
+            // atlases at 50 pt sampling + 5 px padding the full block
+            // packs into roughly a dozen atlas pages (~4 MB each) which
+            // fits comfortably in the 512 MB WebGL heap.
+            for (int c = 0xAC00; c <= 0xD7A3; c++) sb.Append((char)c);
 
             // Jamo block — partial IME composition chars (ㄱ ㅏ etc.)
             // surface briefly during keystroke interpretation.
