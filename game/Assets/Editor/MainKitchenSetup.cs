@@ -13,6 +13,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using DayOneChef.Gameplay;
+using DayOneChef.Gameplay.Data;
 
 namespace DayOneChef.Editor
 {
@@ -22,6 +23,7 @@ namespace DayOneChef.Editor
         private const string SpriteDir = "Assets/Sprites";
         private const string WhiteSquarePath = "Assets/Sprites/WhiteSquare.png";
         private const string KoreanFontAssetPath = "Assets/Fonts/NotoSansKR SDF.asset";
+        private const string OrderCatalogPath = "Assets/Data/OrderCatalog.asset";
 
         [MenuItem("Tools/Day One Chef/Setup Main Kitchen")]
         public static void Setup()
@@ -35,6 +37,12 @@ namespace DayOneChef.Editor
             // pointing at LiberationSans SDF and every 한글 glyph tofus.
             KoreanFontSetup.InstallKoreanFont();
 
+            // Day 4: make sure the order catalog + ingredient/recipe
+            // definitions exist before the scene tries to reference them.
+            // Idempotent — reconfigures existing assets rather than
+            // recreating, so GUIDs survive across re-runs.
+            GameDataGenerator.GenerateAll();
+
             var koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontAssetPath);
             if (koreanFont == null)
             {
@@ -44,7 +52,17 @@ namespace DayOneChef.Editor
                     "this asset for Hangul rendering.");
                 return;
             }
-            Debug.Log($"[MainKitchenSetup] Using NotoSansKR SDF with {koreanFont.glyphTable?.Count ?? 0} glyphs.");
+            var catalog = AssetDatabase.LoadAssetAtPath<OrderCatalog>(OrderCatalogPath);
+            if (catalog == null)
+            {
+                Debug.LogError(
+                    $"[MainKitchenSetup] {OrderCatalogPath} missing after " +
+                    "GameDataGenerator.GenerateAll(). Aborting.");
+                return;
+            }
+            Debug.Log(
+                $"[MainKitchenSetup] Using NotoSansKR SDF with {koreanFont.glyphTable?.Count ?? 0} glyphs, " +
+                $"OrderCatalog with {catalog.Count} orders.");
 
             var scene = EditorSceneManager.NewScene(
                 NewSceneSetup.DefaultGameObjects,
@@ -66,12 +84,20 @@ namespace DayOneChef.Editor
             CreateStation("Station_Counter",      StationType.Counter,      "카운터",
                 new Vector3( 0f, -4f, 0f), new Color(0.45f, 0.75f, 0.55f, 1f), koreanFont);
 
+            var customerGo = CreateCustomer(
+                new Vector3(0f, -6.2f, 0f),
+                new Color(0.85f, 0.60f, 0.90f, 1f),
+                koreanFont);
+
+            var gameRound = CreateGameRoot(catalog, customerGo.GetComponent<Customer>());
+            _ = gameRound;
+
             var sceneDir = Path.GetDirectoryName(ScenePath);
             if (!string.IsNullOrEmpty(sceneDir)) Directory.CreateDirectory(sceneDir);
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             RegisterSceneInBuildSettings(ScenePath);
-            Debug.Log($"[MainKitchenSetup] Wrote {ScenePath} with 5 stations + player + camera follow.");
+            Debug.Log($"[MainKitchenSetup] Wrote {ScenePath} with 5 stations + player + camera follow + customer + game round.");
         }
 
         private static void ConfigureCamera(out GameObject cameraGo)
@@ -160,6 +186,60 @@ namespace DayOneChef.Editor
             tmp.color = Color.black;
             tmp.sortingOrder = 11;
             EditorUtility.SetDirty(tmp);
+        }
+
+        private static GameObject CreateCustomer(Vector3 pos, Color color, TMP_FontAsset koreanFont)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
+            var go = new GameObject("Customer");
+            go.transform.position = pos;
+            go.transform.localScale = new Vector3(1.2f, 1.6f, 1f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.color = color;
+            sr.sortingOrder = 8;
+
+            var customer = go.AddComponent<Customer>();
+
+            // Order bubble — a child TMP label above the customer.
+            // Wired to the Customer via AttachBubble so Customer.Configure
+            // (called every round start by GameRound) can update the text
+            // to the current recipe's display name.
+            var bubbleGo = new GameObject("OrderBubble");
+            bubbleGo.transform.SetParent(go.transform, worldPositionStays: false);
+            bubbleGo.transform.localPosition = new Vector3(0f, 1.3f, -0.1f);
+            bubbleGo.transform.localScale = new Vector3(
+                1f / go.transform.localScale.x,
+                1f / go.transform.localScale.y,
+                1f);
+            var tmp = bubbleGo.AddComponent<TextMeshPro>();
+            tmp.font = koreanFont;
+            tmp.text = "주문 대기 중…";
+            tmp.fontSize = 4f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.black;
+            tmp.sortingOrder = 12;
+            EditorUtility.SetDirty(tmp);
+
+            // Use SerializedObject so the private [SerializeField] field
+            // `_orderBubble` is written back through Unity's serialisation
+            // pipeline. Directly calling AttachBubble + SetDirty was
+            // not enough for the reference to persist into the scene
+            // YAML — the Play mode version had _orderBubble == null.
+            var serialized = new SerializedObject(customer);
+            serialized.FindProperty("_orderBubble").objectReferenceValue = tmp;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            return go;
+        }
+
+        private static GameRound CreateGameRoot(OrderCatalog catalog, Customer customer)
+        {
+            var root = new GameObject("GameRoot");
+            var round = root.AddComponent<GameRound>();
+            round.Bind(catalog, customer);
+            EditorUtility.SetDirty(round);
+            return round;
         }
 
         private static void EnsureWhiteSquareSprite()
