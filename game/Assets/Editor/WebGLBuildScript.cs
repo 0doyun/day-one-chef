@@ -1,5 +1,10 @@
 // Headless WebGL build for the OSS_IME_Probe scene.
 // Invoked by scripts/build-webgl-probe.sh via Unity -batchmode -executeMethod.
+//
+// Compression: Unity defaults to Brotli, but Chrome/Safari/Firefox refuse
+// to decode `Content-Encoding: br` over plain HTTP — only HTTPS. For the
+// local probe loop we force Gzip, which all browsers decode over HTTP.
+// Production deploy (Vercel) can flip back to Brotli.
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,6 +20,9 @@ namespace DayOneChef.Editor
 
         public static void BuildWebGL()
         {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },
@@ -28,6 +36,7 @@ namespace DayOneChef.Editor
 
             Debug.Log(
                 $"[WebGLBuildScript] result={summary.result} " +
+                $"compression={PlayerSettings.WebGL.compressionFormat} " +
                 $"totalTimeMs={summary.totalTime.TotalMilliseconds:F0} " +
                 $"totalSize={summary.totalSize} " +
                 $"errors={summary.totalErrors} warnings={summary.totalWarnings}");
