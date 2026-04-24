@@ -23,6 +23,26 @@ namespace DayOneChef.Editor
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
 
+            // Raise the initial WASM heap to 512 MB. The default 256 MB
+            // leaves too little headroom once the Korean SDF atlases and
+            // TMP subsystems are loaded; probe iteration 1 aborted with
+            // RuntimeError: 67133512 on first keystroke. 512 MB is
+            // well-supported by current browsers and still within
+            // mobile-WKWebView comfort.
+            PlayerSettings.WebGL.memorySize = 512;
+
+            // Ensure the Korean font asset exists and is baked to a static
+            // atlas before the probe scene references it.
+            KoreanFontSetup.InstallKoreanFont();
+
+            // Re-apply the Korean font + probe settings to the committed
+            // scene. Batch-mode Unity can't use ExecuteMenuItem for
+            // "GameObject/UI/Input Field - TextMeshPro", so full scene
+            // regeneration is interactive-only (via Tools → Day One Chef →
+            // Setup OSS IME Probe). The build path only patches an
+            // existing scene.
+            OSSImeProbeSetup.ApplyFontAndSave();
+
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },

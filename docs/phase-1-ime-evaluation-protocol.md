@@ -129,3 +129,54 @@ Save the following under `production/qa/evidence/phase-1-ime/`:
 - [ ] A one-paragraph verdict note: "Phase 1 PASSED / FAILED because …"
 
 The evidence block feeds the eventual ADR `Accepted` status update and doubles as content for the Day 14 demo reel.
+
+---
+
+## How to verify PASS when the input field renders tofu or invisible glyphs
+
+Font rendering is a separate problem tracked in
+`docs/known-issues/webgl-korean-font-rendering.md` — it does not invalidate the
+IME PASS, because the IME pipeline's contract is "Unity C# receives the
+composed Korean string", not "Unity renders it back to screen in the input
+field". Use the clipboard path to test when rendering is broken:
+
+1. Focus the input field, type the Korean test string using your 2-Set IME.
+2. `Cmd+A` to select all of the field's content (works even when glyphs are
+   invisible — selection highlights remain visible).
+3. `Cmd+C` to copy.
+4. Paste into any text editor outside Unity (Notes, Chrome URL bar, this file,
+   whatever).
+5. Compare the pasted string against the test corpus character-by-character.
+   Any dropped or duplicated jamo fails the run; exact match passes.
+
+This method is sufficient to sign off Phase 1 — Unity C# code has already
+received the same string kou-yeung/WebGLInput hands the DOM `<input>`, so an
+exact pasted round-trip proves the bridge.
+
+---
+
+## Results log
+
+Fill in as each platform is verified. Leave FAIL rows with a short reason so
+the Phase-2 decision at the end of Step 5 has evidence to act on.
+
+### Desktop (Step 3)
+
+| Date | Platform | Method | Result | Notes |
+|------|----------|--------|--------|-------|
+| 2026-04-24 | Chrome 127 · macOS 26 | Copy-paste | **PASS** | Test string round-tripped exactly. Glyphs rendered as tofu (font issue, see Known Issues). |
+| — | Safari · macOS 26 | — | — | — |
+| — | Firefox · macOS 26 | — | — | — |
+
+### iOS (Step 4)
+
+| Date | Target | Method | Result | Notes |
+|------|--------|--------|--------|-------|
+| — | iOS Simulator · Safari WKWebView | — | — | — |
+
+## Verdict (updated as rows fill in)
+
+- **Chrome desktop**: PASS (2026-04-24, copy-paste round-trip)
+- **Safari desktop**: pending
+- **Firefox desktop**: pending
+- **iOS Simulator WKWebView**: pending
