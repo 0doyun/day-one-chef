@@ -63,7 +63,11 @@ namespace DayOneChef.Editor
             }
             inputFieldGo.AddComponent(webglInputType);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(ScenePath)!);
+            var sceneDir = Path.GetDirectoryName(ScenePath);
+            if (!string.IsNullOrEmpty(sceneDir))
+            {
+                Directory.CreateDirectory(sceneDir);
+            }
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             RegisterSceneInBuildSettings(ScenePath);
