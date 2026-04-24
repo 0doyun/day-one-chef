@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  Day One Chef — minimal WebGL host.
+  Keeps a single full-viewport canvas, a plain-text loading label,
+  and nothing else. Replaces Unity's default template so the Flutter
+  WebView host doesn't have to fight Unity's fullscreen chrome.
+
+  Template variables filled at build time by the Unity WebGL pipeline:
+    {{{ PRODUCT_NAME }}}, {{{ PRODUCT_VERSION }}}, {{{ COMPANY_NAME }}},
+    {{{ LOADER_FILENAME }}}, {{{ DATA_FILENAME }}},
+    {{{ FRAMEWORK_FILENAME }}}, {{{ CODE_FILENAME }}}.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #1a1a1a; overflow: hidden; font-family: sans-serif; }
+    #unity-container { position: relative; width: 100%; height: 100%; }
+    #unity-canvas { width: 100%; height: 100%; display: block; background: #1a1a1a; touch-action: none; }
+    #unity-loading {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #ccc; font-size: 14px; user-select: none; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="unity-loading">Loading… 0%</div>
+  </div>
+  <script>
+    var unityShowBanner = function () {};
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    var config = {
+      dataUrl:            buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl:       buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl:            buildUrl + "/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName:        "{{{ COMPANY_NAME }}}",
+      productName:        "{{{ PRODUCT_NAME }}}",
+      productVersion:     "{{{ PRODUCT_VERSION }}}",
+    };
+    var loadingLabel = document.getElementById("unity-loading");
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = function () {
+      createUnityInstance(
+        document.querySelector("#unity-canvas"),
+        config,
+        function (progress) {
+          loadingLabel.innerText = "Loading… " + Math.round(progress * 100) + "%";
+        }
+      ).then(function () {
+        loadingLabel.remove();
+      }).catch(function (err) {
+        loadingLabel.innerText = "Load failed: " + err;
+      });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

@@ -86,7 +86,7 @@ namespace DayOneChef.Gameplay
 
         private void RebuildKitchen()
         {
-            var stations = FindObjectsByType<StationMarker>(FindObjectsSortMode.None);
+            var stations = FindObjectsByType<StationMarker>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             _kitchen = new KitchenState(_ingredientDefinitions ?? System.Array.Empty<IngredientDefinition>(), stations);
             _executor = new ActionExecutor(_kitchen);
         }
