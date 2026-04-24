@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f01ce8f507554909a20950f986a2d76, type: 3}
+  m_Name: Order_01_Toast
+  m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.Order
+  _orderId: "\uD1A0\uC2A4\uD2B8-01"
+  _recipe: {fileID: 11400000, guid: 60826d0f9d4c946f086a2d5e2b6e0fb6, type: 2}
+  _customerMood: 0
+  _exampleInstruction: "\uBE75 \uD654\uAD6C\uC5D0 \uC62C\uB824\uC11C \uAD6C\uC6CC\uC918"
