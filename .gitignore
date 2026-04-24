@@ -17,6 +17,9 @@ production/session-logs/
 # === OMC Runtime State (local only) ===
 .omc/
 
+# === Unity build artifacts (regenerable via scripts/build-webgl-probe.sh) ===
+game/Build/
+
 # === Internal Planning (not for public) ===
 
 expansions/
