@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f01ce8f507554909a20950f986a2d76, type: 3}
+  m_Name: Order_04_Omelet
+  m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.Order
+  _orderId: "\uC624\uBBC8\uB81B-01"
+  _recipe: {fileID: 11400000, guid: 7e751db1154104048b754cc7c8c0dfd7, type: 2}
+  _customerMood: 1
+  _exampleInstruction: "\uACC4\uB780 \uD480\uC5B4\uC11C \uD32C\uC5D0 \uBD93\uACE0
+    \uBC18\uC73C\uB85C \uC811\uC5B4\uC918"
