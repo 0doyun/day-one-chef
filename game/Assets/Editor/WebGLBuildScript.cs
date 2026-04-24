@@ -15,21 +15,14 @@ namespace DayOneChef.Editor
 {
     public static class WebGLBuildScript
     {
-        private const string ScenePath = "Assets/Scenes/OSS_IME_Probe.unity";
-        private const string OutputDir = "Build/webgl-ime-probe";
+        private const string ProbeScenePath = "Assets/Scenes/OSS_IME_Probe.unity";
+        private const string ProbeOutputDir = "Build/webgl-ime-probe";
+        private const string MainScenePath = "Assets/Scenes/MainKitchen.unity";
+        private const string MainOutputDir = "Build/webgl-main";
 
         public static void BuildWebGL()
         {
-            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
-            PlayerSettings.WebGL.decompressionFallback = true;
-
-            // Raise the initial WASM heap to 512 MB. The default 256 MB
-            // leaves too little headroom once the Korean SDF atlases and
-            // TMP subsystems are loaded; probe iteration 1 aborted with
-            // RuntimeError: 67133512 on first keystroke. 512 MB is
-            // well-supported by current browsers and still within
-            // mobile-WKWebView comfort.
-            PlayerSettings.WebGL.memorySize = 512;
+            ApplyCommonWebGLSettings();
 
             // Ensure the Korean font asset exists and is baked to a static
             // atlas before the probe scene references it.
@@ -43,10 +36,42 @@ namespace DayOneChef.Editor
             // existing scene.
             OSSImeProbeSetup.ApplyFontAndSave();
 
+            RunBuild(ProbeScenePath, ProbeOutputDir);
+        }
+
+        public static void BuildWebGLMain()
+        {
+            ApplyCommonWebGLSettings();
+
+            // MainKitchenSetup is fully code-driven (no ExecuteMenuItem),
+            // so we always regenerate the scene in batch mode. The scene
+            // and placeholder sprite are gitignored derived artifacts.
+            KoreanFontSetup.InstallKoreanFont();
+            MainKitchenSetup.Setup();
+
+            RunBuild(MainScenePath, MainOutputDir);
+        }
+
+        private static void ApplyCommonWebGLSettings()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+
+            // Raise the initial WASM heap to 512 MB. The default 256 MB
+            // leaves too little headroom once the Korean SDF atlases and
+            // TMP subsystems are loaded; probe iteration 1 aborted with
+            // RuntimeError: 67133512 on first keystroke. 512 MB is
+            // well-supported by current browsers and still within
+            // mobile-WKWebView comfort.
+            PlayerSettings.WebGL.memorySize = 512;
+        }
+
+        private static void RunBuild(string scenePath, string outputDir)
+        {
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { ScenePath },
-                locationPathName = OutputDir,
+                scenes = new[] { scenePath },
+                locationPathName = outputDir,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None,
             };
@@ -55,7 +80,7 @@ namespace DayOneChef.Editor
             var summary = report.summary;
 
             Debug.Log(
-                $"[WebGLBuildScript] result={summary.result} " +
+                $"[WebGLBuildScript] scene={scenePath} result={summary.result} " +
                 $"compression={PlayerSettings.WebGL.compressionFormat} " +
                 $"totalTimeMs={summary.totalTime.TotalMilliseconds:F0} " +
                 $"totalSize={summary.totalSize} " +

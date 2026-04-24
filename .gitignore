@@ -33,6 +33,16 @@ game/Assets/Fonts/NotoSansKR SDF.asset.meta
 game/Assets/OSS_IME_Probe.unity
 game/Assets/OSS_IME_Probe.unity.meta
 
+# === Day 3 prototype — derived scene regenerated every build ===
+# MainKitchenSetup.cs generates the scene and placeholder sprite from
+# code on every WebGL build, so committing them would create churn and
+# hide the code-as-source-of-truth. Keep the .cs driver tracked, ignore
+# the derived artifacts.
+game/Assets/Scenes/MainKitchen.unity
+game/Assets/Scenes/MainKitchen.unity.meta
+game/Assets/Sprites/WhiteSquare.png
+game/Assets/Sprites/WhiteSquare.png.meta
+
 # === Internal Planning (not for public) ===
 
 expansions/
