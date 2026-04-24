@@ -28,6 +28,7 @@ namespace DayOneChef.Gameplay
         [SerializeField] private OrderCatalog _catalog;
         [SerializeField] private Customer _customer;
         [SerializeField] private GeminiConfig _geminiConfig;
+        [SerializeField] private IngredientDefinition[] _ingredientDefinitions;
         [SerializeField] private List<string> _availableIngredientsForPrompt = new()
         {
             "패티", "빵", "치즈", "상추", "토마토", "계란",
@@ -40,18 +41,28 @@ namespace DayOneChef.Gameplay
         private OrderQueue _queue;
         private RoundPhase _phase = RoundPhase.Idle;
         private IGeminiClient _client;
+        private KitchenState _kitchen;
+        private ActionExecutor _executor;
+        private EventLog _lastEventLog;
 
         public RoundPhase Phase => _phase;
         public Order CurrentOrder => _queue?.Current;
         public int RoundIndex => _queue?.ProcessedCount ?? 0;
         public int TotalRounds => _queue?.Count ?? 0;
         public Customer Customer => _customer;
+        public EventLog LastEventLog => _lastEventLog;
+        public KitchenState Kitchen => _kitchen;
 
         public void Bind(OrderCatalog catalog, Customer customer, GeminiConfig geminiConfig = null)
         {
             _catalog = catalog;
             _customer = customer;
             if (geminiConfig != null) _geminiConfig = geminiConfig;
+        }
+
+        public void BindIngredients(IngredientDefinition[] defs)
+        {
+            _ingredientDefinitions = defs;
         }
 
         /// <summary>
@@ -69,7 +80,15 @@ namespace DayOneChef.Gameplay
                 return;
             }
             _queue = new OrderQueue(_catalog.Orders);
+            RebuildKitchen();
             PresentCurrentOrder();
+        }
+
+        private void RebuildKitchen()
+        {
+            var stations = FindObjectsByType<StationMarker>(FindObjectsSortMode.None);
+            _kitchen = new KitchenState(_ingredientDefinitions ?? System.Array.Empty<IngredientDefinition>(), stations);
+            _executor = new ActionExecutor(_kitchen);
         }
 
         public async Task SubmitInstructionAsync(string instruction, CancellationToken ct = default)
@@ -98,7 +117,11 @@ namespace DayOneChef.Gameplay
                 var client = _client ?? CreateDefaultClient();
                 var response = await client.GenerateActionsAsync(snapshot, instruction, ct);
                 LogResponse(order, response);
-                // Day 6 will insert action execution here.
+                if (_executor != null)
+                {
+                    _lastEventLog = await _executor.ExecuteAsync(response, ct);
+                    Debug.Log($"[GameRound] EventLog JSON: {_lastEventLog.ToJson()}");
+                }
             }
             catch (GeminiCallException ex)
             {
@@ -114,6 +137,7 @@ namespace DayOneChef.Gameplay
         {
             if (_queue == null) return;
             _queue.Advance();
+            RebuildKitchen();
             PresentCurrentOrder();
         }
 

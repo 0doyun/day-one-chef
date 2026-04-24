@@ -12,6 +12,7 @@ using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using System.Collections.Generic;
 using DayOneChef.Gameplay;
 using DayOneChef.Gameplay.Data;
 
@@ -25,6 +26,7 @@ namespace DayOneChef.Editor
         private const string KoreanFontAssetPath = "Assets/Fonts/NotoSansKR SDF.asset";
         private const string OrderCatalogPath = "Assets/Data/OrderCatalog.asset";
         private const string GeminiConfigPath = "Assets/Data/GeminiConfig.asset";
+        private const string IngredientDir = "Assets/Data/Ingredients";
 
         [MenuItem("Tools/Day One Chef/Setup Main Kitchen")]
         public static void Setup()
@@ -91,7 +93,9 @@ namespace DayOneChef.Editor
                 koreanFont);
 
             var geminiConfig = AssetDatabase.LoadAssetAtPath<GeminiConfig>(GeminiConfigPath);
-            var gameRound = CreateGameRoot(catalog, customerGo.GetComponent<Customer>(), geminiConfig);
+            var ingredientDefs = LoadIngredientDefinitions();
+            var gameRound = CreateGameRoot(
+                catalog, customerGo.GetComponent<Customer>(), geminiConfig, ingredientDefs);
             var posterGo = new GameObject("DebugInstructionPoster");
             var poster = posterGo.AddComponent<DebugInstructionPoster>();
             poster.Bind(gameRound);
@@ -238,13 +242,46 @@ namespace DayOneChef.Editor
             return go;
         }
 
-        private static GameRound CreateGameRoot(OrderCatalog catalog, Customer customer, GeminiConfig geminiConfig)
+        private static GameRound CreateGameRoot(
+            OrderCatalog catalog,
+            Customer customer,
+            GeminiConfig geminiConfig,
+            IngredientDefinition[] ingredientDefs)
         {
             var root = new GameObject("GameRoot");
             var round = root.AddComponent<GameRound>();
             round.Bind(catalog, customer, geminiConfig);
-            EditorUtility.SetDirty(round);
+            round.BindIngredients(ingredientDefs);
+            // Serialise the ingredient array through SerializedObject so
+            // the reference survives scene save — same reason
+            // Customer._orderBubble needs this path (see Day 4 notes).
+            var so = new SerializedObject(round);
+            var prop = so.FindProperty("_ingredientDefinitions");
+            prop.arraySize = ingredientDefs.Length;
+            for (var i = 0; i < ingredientDefs.Length; i++)
+            {
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = ingredientDefs[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
             return round;
+        }
+
+        private static IngredientDefinition[] LoadIngredientDefinitions()
+        {
+            var list = new List<IngredientDefinition>();
+            foreach (IngredientType type in System.Enum.GetValues(typeof(IngredientType)))
+            {
+                var path = $"{IngredientDir}/{type}.asset";
+                var def = AssetDatabase.LoadAssetAtPath<IngredientDefinition>(path);
+                if (def == null)
+                {
+                    Debug.LogWarning($"[MainKitchenSetup] Missing ingredient asset at {path} — " +
+                                     "run Tools → Day One Chef → Generate Game Data first.");
+                    continue;
+                }
+                list.Add(def);
+            }
+            return list.ToArray();
         }
 
         private static void EnsureWhiteSquareSprite()
