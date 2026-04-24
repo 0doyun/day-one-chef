@@ -18,7 +18,7 @@ Solo developer (project owner).
 
 ## Summary
 
-Unity WebGL's built-in text input (`TMP_InputField`, `InputField`) drops hangul characters mid-composition on every major browser, so the project cannot rely on it for the single-line Korean instruction field that drives the entire core loop. We will place an HTML `<input>` element as a positioned overlay above the Unity canvas and route browser IME composition events into Unity via a `.jslib` bridge, giving us one working implementation that serves both the Vercel web build and the iOS Flutter WebView shell (WKWebView-backed).
+Unity WebGL's built-in text input (`TMP_InputField`, `InputField`) drops hangul characters mid-composition on every major browser — this is acknowledged in Unity's own manual ("Input via IME is currently not supported on the Web platform") and tracked in the Unity Issue Tracker. The project cannot rely on it for the single-line Korean instruction field that drives the entire core loop. Solution strategy is **OSS-first, DIY-fallback**: on Day 1 evaluate mature open-source libraries (primary candidate: Unity Japan team's `unity3d-jp/WebGLNativeInputField`) against the Korean 2-Set composition validation matrix. If an OSS library passes validation, adopt it and spend the freed time on the custom bridge story. If none pass, fall back to the DIY approach specified in this ADR: an HTML `<input>` overlay + `.jslib` bridge routing browser IME composition events into Unity. Either path yields the same Unity-side contract, so downstream work is unaffected.
 
 ## Engine Compatibility
 
@@ -72,7 +72,15 @@ No text input is implemented. `TMP_InputField` in Unity WebGL has been confirmed
 
 ## Decision
 
-Render a transparent-bordered HTML `<input type="text">` element as an absolutely-positioned overlay pinned to the instruction box region of the Unity canvas. The overlay owns Korean IME composition natively through the browser. On `compositionend` (for IME finalization) and on `input` (for direct ASCII and backspace), the overlay's JavaScript pushes the current value into Unity via `SendMessage` on a dedicated C# GameObject. Unity treats the input box as a *view only* of the overlay's state — it never authors characters itself.
+Adopt a **two-phase decision**:
+
+**Phase 1 — Day 1 OSS evaluation (time-boxed to 2 hours).**
+Integrate `unity3d-jp/WebGLNativeInputField` (maintained by the Unity Japan team) into a throwaway scene and run the Korean 2-Set validation matrix in Validation Criteria. If it passes the full matrix — desktop Chrome/Safari/Firefox and iOS Flutter WKWebView — adopt it as-is and stop.
+
+**Phase 2 — Fallback DIY (only if Phase 1 fails).**
+Build the HTML overlay directly: render a transparent-bordered HTML `<input type="text">` element as an absolutely-positioned overlay pinned to the instruction box region of the Unity canvas. The overlay owns Korean IME composition natively through the browser. On `compositionend` (for IME finalization) and on `input` (for direct ASCII and backspace), the overlay's JavaScript pushes the current value into Unity via `SendMessage` on a dedicated C# GameObject. Unity treats the input box as a *view only* of the overlay's state — it never authors characters itself.
+
+Both phases expose the **same Unity-side contract** (`KoreanImeBridge.OnTextChanged`, `OnSubmit`). This is the key architectural invariant — everything downstream (GameManager, Gemini call #1, monologue stream) stays identical regardless of which phase wins.
 
 ### Architecture
 
@@ -225,6 +233,19 @@ public sealed class KoreanImeBridge : MonoBehaviour
 - **Estimated Effort**: Very high (weeks, not days) and never reaches parity with OS IME.
 - **Rejection Reason**: Hard incompatible with the 14-day timeline. Also wrong tool for the job.
 
+### Alternative 5: Blindly adopt a single OSS library without fallback
+
+- **Description**: Pick one of the mature OSS Unity WebGL IME libraries and commit to it without a DIY fallback path. Candidates surveyed:
+  - [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. Two modes (popup via `window.prompt` or overlay HTML). Primary candidate for Phase 1 in the current decision.
+  - [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — most popular community solution. TMP support since Unity 2018.2.
+  - [`decentraland/webgl-ime-input`](https://github.com/decentraland/webgl-ime-input) — production-validated (Decentraland, a live commercial metaverse).
+  - `WebGLSupport` — general-purpose WebGL helper package that includes IME handling.
+  - [`rehanlabs/Unity-WebGL-HTML-InputFix`](https://github.com/rehanlabs/Unity-WebGL-HTML-InputFix) — community HTML input bridge.
+- **Pros**: Fastest possible integration. No original IME code to write or maintain.
+- **Cons**: Most of these libraries are primarily tested for Japanese IME. Korean 2-Set behavior is under-validated. None are documented against iOS WKWebView via `webview_flutter`. No guarantee any single choice passes the full validation matrix on Day 1. Committing without a fallback means a Day-2 blocker if the chosen library trips on Safari or WKWebView edge cases.
+- **Estimated Effort**: 2–4 hours if the library works; days of unbounded firefighting if it silently breaks on one platform.
+- **Rejection Reason**: The *chosen decision* actually absorbs this alternative as Phase 1 — but it **adds a DIY fallback** (Phase 2) so a library failure does not become a project blocker. Committing to a single library with no exit ramp is the rejected variant; the two-phase strategy is what was chosen.
+
 ## Consequences
 
 ### Positive
@@ -257,6 +278,9 @@ public sealed class KoreanImeBridge : MonoBehaviour
 | iOS WKWebView reports different composition event ordering than desktop Safari | Low | High | Include iOS WKWebView in Day-2 prototype acceptance gate; if it diverges, fall back to Alternative 2 for iOS only |
 | Shift from single-line to multi-line input requirements later | Low | Low | Swap `<input>` → `<textarea>` with identical event handlers; schema unchanged |
 | Unity updates `[DllImport("__Internal")]` contract in a future LTS | Very low | Medium | Pinned to Unity 6.3 LTS via `VERSION.md`; re-verify on any upgrade ADR |
+| Phase 1 OSS library passes Japanese IME but drops Korean 2-Set jamo mid-composition (library primarily developed against Japanese input) | Medium | High | Include Korean 2-Set test string in Phase 1 validation matrix; fall into Phase 2 DIY on any dropped jamo |
+| Phase 1 OSS library untested against Unity 6.3 LTS (most libraries developed against Unity 2019–2022 LTS) | Medium | Medium | Phase 1 evaluation itself exercises this — break reveals itself within 2 hours rather than leaking into Day 3+ |
+| Phase 1 OSS library untested against iOS WKWebView via `webview_flutter` (libraries typically tested against desktop browsers only) | Medium | High | Include the iOS Simulator inside `webview_flutter` as a mandatory row in the Phase 1 matrix, not an afterthought |
 
 ## Performance Implications
 
@@ -273,13 +297,24 @@ No measurable game-loop cost. Event dispatch is bound by IME composition rate (h
 
 This is a greenfield decision — no prior implementation to migrate from.
 
-1. Day 1: Stub `KoreanImeBridge.cs` and `KoreanImeOverlay.jslib`. Verify `SendMessage` round-trip with an ASCII-only test in Chrome desktop.
-2. Day 1: Wire the overlay positioning to a fixed Unity UI `RectTransform`. Confirm visual alignment at 1x, 1.25x, 1.5x browser zoom.
-3. Day 2: Korean IME test matrix — Chrome/Safari/Firefox on macOS; iOS WKWebView inside `webview_flutter`. (When testing in the iOS Simulator specifically, disable Simulator's hardware keyboard and add the Korean keyboard in simulated iOS Settings so the real IME path is exercised.) Record hangul from "ㄱ ㅏ" → "가" → "감사합니다" with zero dropped jamo.
-4. Day 2: Focus-loss and re-focus paths; Enter-to-submit; maxlength enforcement; blur-on-outside-tap.
-5. Day 2 end: PASS → mark ADR Accepted and proceed to Day 3. FAIL → switch to Alternative 2 (Flutter TextField) for the iOS path only, re-prototype on Day 3, push one day into the buffer.
+### Phase 1 — Day 1 OSS evaluation (time-boxed ~2 hours)
 
-**Rollback plan**: If the overlay approach fails desktop validation on Day 2, supersede this ADR with ADR-0001-rev2 adopting Alternative 3 (hybrid). The fallback costs one timeline day and breaks the "single implementation" goal but preserves delivery.
+1. Add `unity3d-jp/WebGLNativeInputField` as a dependency (via UPM git URL or `.unitypackage`). Place under `game/Assets/Plugins/` — do not vendor into `Assets/Scripts/` so license boundary stays clean.
+2. Create a throwaway scene `OSS_IME_Probe.unity` with a single `TMP_InputField` wrapped by the library's component. No project integration yet.
+3. Build WebGL → serve locally → run the Korean test string (`"안녕하세요 계란찜 먼저 풀어서 물 넣고 쪄줘"`) in Chrome, Safari, Firefox on macOS.
+4. Open the same WebGL build inside a quick `webview_flutter` wrapper on iOS Simulator. (Disable Simulator's hardware keyboard; add the Korean keyboard in simulated iOS Settings so the real IME path is exercised.)
+5. **PASS** (zero dropped jamo on all four platforms) → thin-wrapper the library behind the `KoreanImeBridge` C# contract (§Key Interfaces) so downstream code is ignorant of the backing implementation. Mark ADR `Accepted`. Proceed to Day 3.
+6. **FAIL** on any platform → note the specific failure (Safari composition event ordering? WKWebView focus?) and move to Phase 2.
+
+### Phase 2 — Day 2 DIY fallback (only if Phase 1 failed)
+
+7. Stub `KoreanImeBridge.cs` and `KoreanImeOverlay.jslib` under `game/Assets/Scripts/Bridge/`. Verify `SendMessage` round-trip with an ASCII-only test in Chrome desktop.
+8. Wire the overlay positioning to a fixed Unity UI `RectTransform`. Confirm visual alignment at 1x, 1.25x, 1.5x browser zoom.
+9. Re-run the Phase 1 test matrix (Korean composition across Chrome/Safari/Firefox/iOS WKWebView).
+10. Focus-loss and re-focus paths; Enter-to-submit; `maxlength` enforcement; blur-on-outside-tap.
+11. Day 2 end: PASS → mark ADR `Accepted` and proceed to Day 3. FAIL → supersede this ADR with ADR-0001-rev2 adopting Alternative 3 (Hybrid per-platform: overlay for web, Flutter TextField for iOS), re-prototype on Day 3, push one day into the buffer.
+
+**Rollback plan**: If Phase 1 adopted an OSS library and a bug surfaces post-Day 2, revert the dependency and fall into Phase 2 — the `KoreanImeBridge` contract isolates the change to one swap. If Phase 2 itself also fails desktop validation, supersede this ADR with ADR-0001-rev2 adopting Alternative 3 (hybrid per-platform). The cascading fallback costs at most one timeline day and breaks the "single implementation" goal but preserves delivery.
 
 ## Validation Criteria
 
@@ -306,7 +341,16 @@ This is a greenfield decision — no prior implementation to migrate from.
 - **Enables**: ADR-0002 (Bridge message protocol) — Unity ↔ JS SendMessage channel contract builds on the same interop mechanism.
 - **Related spec**: [`design/gdd/game-concept.md`](../../design/gdd/game-concept.md) §5, §6.4, §8, §12, §14.
 - **Engine reference**: [`docs/engine-reference/unity/VERSION.md`](../engine-reference/unity/VERSION.md) — Unity 6.3 LTS pin.
-- **Code paths (to be created)**:
-  - `src/Bridge/KoreanImeBridge.cs`
-  - `src/Bridge/KoreanImeOverlay.jslib`
-  - `src/UI/InstructionBox.cs` (Unity UI component that requests overlay show/hide)
+- **Primary Phase 1 candidate**: [`unity3d-jp/WebGLNativeInputField`](https://github.com/unity3d-jp/WebGLNativeInputField) — Unity Japan official team. Popup and overlay modes. Adopt under `game/Assets/Plugins/` if Phase 1 validation passes.
+- **Phase 1 fallback candidates** (if primary fails or is unmaintained at evaluation time):
+  - [`kou-yeung/WebGLInput`](https://github.com/kou-yeung/WebGLInput) — TMP support since 2018.2
+  - [`decentraland/webgl-ime-input`](https://github.com/decentraland/webgl-ime-input) — production-validated
+  - [`rehanlabs/Unity-WebGL-HTML-InputFix`](https://github.com/rehanlabs/Unity-WebGL-HTML-InputFix) — generic HTML input bridge
+- **Evidence that the problem is real** (Phase 2 justification):
+  - [Unity Manual — IME in Unity](https://docs.unity3d.com/Manual/IMEInput.html) — states IME not supported on Web platform
+  - [Unity Issue Tracker — IME languages not recognized in WebGL builds](https://issuetracker.unity3d.com/issues/ime-languages-are-not-recognized-when-entering-input-in-mobile-and-webgl-builds-1)
+  - [Unity Discussions — WebGL IME (TMP_InputField) feature request](https://discussions.unity.com/t/question-feature-request-about-webgl-ime-tmp-inputfield/917334)
+- **Code paths (to be created only if Phase 2 fires)**:
+  - `game/Assets/Scripts/Bridge/KoreanImeBridge.cs` (always created — interface layer, both phases depend on it)
+  - `game/Assets/Scripts/Bridge/KoreanImeOverlay.jslib` (Phase 2 only)
+  - `game/Assets/Scripts/UI/InstructionBox.cs` (Unity UI component that requests overlay show/hide — always created)
