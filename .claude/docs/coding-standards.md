@@ -21,6 +21,12 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) v
 ```
 
 - **Subject line**: ≤ 72 chars, imperative mood ("add" not "added"), no trailing period
+  - **Describe the change, not the schedule**: do NOT put sprint-day
+    markers like `Day 6 —`, `Week 2:`, `Sprint 3:` in the subject.
+    Schedule context belongs in the PR description and rots in git
+    history (future reader has no "day 6" context). Bad:
+    `feat(game): Day 6 — action executor + event log`. Good:
+    `feat(game): add chef action executor with 0.6s tick and event log`.
 - **Body**: explain *why*, not *what* (the diff shows what). Reference GDD sections, ADRs, or task IDs when applicable
 - **Footer**: `BREAKING CHANGE: ...` for breaking changes, `Refs: design/gdd/foo.md` or `Closes: #123` for links
 
