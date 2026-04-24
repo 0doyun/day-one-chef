@@ -73,17 +73,28 @@ Public deploy (Vercel):  Unity WebGL  ◄──JS──►  (browser only, no Fl
 ```
 day-one-chef/
 ├── CLAUDE.md                    # 프로젝트 설정 (엔진, 표준, 조정 규칙)
+├── README.md
+├── game/                        # Unity 프로젝트 (Universal 2D · URP · C#)
+│   ├── Assets/
+│   │   ├── Scripts/             # 게임 소스 (예정)
+│   │   │   ├── Bridge/          # Unity↔JS .jslib + KoreanImeBridge
+│   │   │   ├── AI/              # GeminiClient
+│   │   │   └── Game/            # 액션 실행기, 상태 머신, 주문
+│   │   └── Scenes/
+│   ├── Packages/
+│   └── ProjectSettings/
+├── app/                         # Flutter 셸 (예정)
+│   ├── pubspec.yaml
+│   └── lib/bridge/              # JSChannel 리시버
 ├── design/gdd/
 │   └── game-concept.md          # 게임 스펙 (전체 설계 문서)
 ├── docs/
-│   ├── architecture/            # ADR (예정)
+│   ├── architecture/            # ADR
 │   └── engine-reference/unity/  # Unity 6.3 LTS 레퍼런스 스냅샷
-├── src/                         # Unity 게임 소스 (예정)
-├── flutter_shell/               # Flutter 셸 (예정)
-├── assets/                      # 게임 에셋 (예정)
-├── tests/                       # EditMode / PlayMode 테스트 (예정)
-└── docs/                        # 기술 문서
+└── tests/                       # EditMode / PlayMode 테스트 (예정)
 ```
+
+**Unity Hub에서 이 프로젝트 열기:** "Add project from disk" → `day-one-chef/game/` 선택 (리포 루트 아님)
 
 ---
 
@@ -91,11 +102,11 @@ day-one-chef/
 
 브릿지 구현이 이 프로젝트의 핵심 볼거리이므로 README에서 직접 링크한다:
 
-- **Unity → JS 메시지 전송**: `src/Bridge/UnityBridge.cs` *(TODO)*
-- **JSLib 브릿지**: `src/Bridge/WebGLBridge.jslib` *(TODO)*
-- **Flutter JSChannel 리시버**: `flutter_shell/lib/bridge/unity_channel.dart` *(TODO)*
-- **Korean IME 오버레이**: `src/Bridge/KoreanImeOverlay.jslib` *(TODO)*
-- **Gemini 호출 레이어**: `src/AI/GeminiClient.cs` *(TODO)*
+- **Unity → JS 메시지 전송**: `game/Assets/Scripts/Bridge/UnityBridge.cs` *(TODO)*
+- **JSLib 브릿지**: `game/Assets/Scripts/Bridge/WebGLBridge.jslib` *(TODO)*
+- **Flutter JSChannel 리시버**: `app/lib/bridge/unity_channel.dart` *(TODO)*
+- **Korean IME 오버레이**: `game/Assets/Scripts/Bridge/KoreanImeOverlay.jslib` *(TODO)*
+- **Gemini 호출 레이어**: `game/Assets/Scripts/AI/GeminiClient.cs` *(TODO)*
 
 ---
 

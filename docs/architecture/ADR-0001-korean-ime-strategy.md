@@ -307,6 +307,6 @@ This is a greenfield decision — no prior implementation to migrate from.
 - **Related spec**: [`design/gdd/game-concept.md`](../../design/gdd/game-concept.md) §5, §6.4, §8, §12, §14.
 - **Engine reference**: [`docs/engine-reference/unity/VERSION.md`](../engine-reference/unity/VERSION.md) — Unity 6.3 LTS pin.
 - **Code paths (to be created)**:
-  - `src/Bridge/KoreanImeBridge.cs`
-  - `src/Bridge/KoreanImeOverlay.jslib`
-  - `src/UI/InstructionBox.cs` (Unity UI component that requests overlay show/hide)
+  - `game/Assets/Scripts/Bridge/KoreanImeBridge.cs`
+  - `game/Assets/Scripts/Bridge/KoreanImeOverlay.jslib`
+  - `game/Assets/Scripts/UI/InstructionBox.cs` (Unity UI component that requests overlay show/hide)
