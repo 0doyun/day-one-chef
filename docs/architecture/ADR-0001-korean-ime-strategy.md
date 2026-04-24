@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (2026-04-24, Phase 1 macOS desktop gate cleared)
 
 ## Date
 
@@ -10,7 +10,7 @@ Proposed
 
 ## Last Verified
 
-2026-04-23
+2026-04-24
 
 ## Decision Makers
 
