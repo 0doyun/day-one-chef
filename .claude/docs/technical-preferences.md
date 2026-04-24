@@ -83,10 +83,10 @@
 
 <!-- Quick reference linking to full ADRs in docs/architecture/ -->
 - [ADR-0001](../../docs/architecture/ADR-0001-korean-ime-strategy.md) — Korean IME Strategy for Unity WebGL (Accepted 2026-04-24) — kou-yeung/WebGLInput adopted after Phase 1 macOS Chrome + Safari PASS
+- [ADR-0003](../../docs/architecture/ADR-0003-gemini-call-architecture.md) — Gemini Call Architecture (Proposed 2026-04-24) — direct-from-Unity client behind `IGeminiClient` for Day 5, Flutter-proxy implementation swaps in on Day 8–9
 
 **Remaining ADRs to author:**
 2. **Bridge message protocol** — JSON schema shared between Unity C#, JS glue, Flutter Dart
-3. **Gemini call architecture** — proxy through Flutter (hide API key) vs direct from WebGL (faster, key exposed); cost/security tradeoff
 4. **Action executor model** — interpreter loop vs state machine with verb handlers
 5. **Evaluator ground-truth contract** — what data Unity collects per round for Gemini evaluation (includes event log for order-sensitive recipes like 계란찜)
 
