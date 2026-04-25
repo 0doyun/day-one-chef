@@ -31,6 +31,33 @@
     <div id="unity-loading">Loading… 0%</div>
   </div>
   <script>
+    // Forward in-WebView console output to the Flutter terminal so we
+    // can see Unity Debug.Log + jslib warnings without spinning up
+    // Safari Web Inspector. Survives even when `inspectable` is off
+    // on macOS WKWebView. Disabled if FlutterBridge isn't injected.
+    (function () {
+      ['log', 'warn', 'error'].forEach(function (level) {
+        var orig = console[level].bind(console);
+        console[level] = function () {
+          try {
+            if (typeof FlutterBridge !== 'undefined' && FlutterBridge.postMessage) {
+              var parts = [];
+              for (var i = 0; i < arguments.length; i++) {
+                var a = arguments[i];
+                parts.push(typeof a === 'string' ? a : JSON.stringify(a));
+              }
+              FlutterBridge.postMessage(JSON.stringify({
+                type: 'console_log',
+                level: level,
+                text: parts.join(' ')
+              }));
+            }
+          } catch (e) {}
+          orig.apply(console, arguments);
+        };
+      });
+    })();
+
     var unityShowBanner = function () {};
     var buildUrl = "Build";
     var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";

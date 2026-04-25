@@ -10,6 +10,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_static/shelf_static.dart';
 
+import 'gemini_proxy.dart';
+
 class UnityServer {
   UnityServer._(this._server, this.url);
 
@@ -17,15 +19,26 @@ class UnityServer {
   final Uri url;
 
   static Future<UnityServer> start(Directory rootDir) async {
+    // Two-layer handler: routed requests (Gemini proxy) win first, and
+    // anything unmatched falls through to the static file tree. That
+    // way the Unity build lives at `/`, the proxy at `/api/gemini/...`
+    // (ADR-0003 Phase B), and neither has to know about the other.
+    final staticHandler = createStaticHandler(
+      rootDir.path,
+      defaultDocument: 'index.html',
+      serveFilesOutsidePath: false,
+    );
+    final apiHandler = GeminiProxy().buildRouter().call;
+
+    Future<Response> cascade(Request req) async {
+      final response = await apiHandler(req);
+      if (response.statusCode != 404) return response;
+      return staticHandler(req);
+    }
+
     final handler = const Pipeline()
         .addMiddleware(_unityContentEncodingMiddleware)
-        .addHandler(
-          createStaticHandler(
-            rootDir.path,
-            defaultDocument: 'index.html',
-            serveFilesOutsidePath: false,
-          ),
-        );
+        .addHandler(cascade);
 
     final server = await shelf_io.serve(handler, InternetAddress.loopbackIPv4, 0);
     final url = Uri(

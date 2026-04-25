@@ -26,8 +26,16 @@ dependencies:
   # guesswork of file:// URLs on both platforms.
   shelf: ^1.4.2
   shelf_static: ^1.1.3
+  shelf_router: ^1.1.4
   path_provider: ^2.1.5
   path: ^1.9.0
+
+  # Gemini proxy — HTTP to Google + .env-sourced API key. The key is
+  # never bundled into the Unity WebGL build; it stays on the Dart
+  # side and the shelf server injects it per-request. See ADR-0003
+  # Phase B.
+  http: ^1.2.2
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +47,4 @@ flutter:
   assets:
     - assets/unity/
     - assets/unity/Build/
+    - .env

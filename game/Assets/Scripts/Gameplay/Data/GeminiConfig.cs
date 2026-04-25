@@ -46,5 +46,17 @@ namespace DayOneChef.Gameplay.Data
         {
             return $"{_endpoint}/{_model}:generateContent?key={apiKey}";
         }
+
+        /// <summary>
+        /// Same-origin relative path served by the Flutter shell's shelf
+        /// proxy (`app/lib/src/shell/gemini_proxy.dart`). The Unity WebGL
+        /// build never holds the API key: it POSTs the Gemini request
+        /// body here and the proxy adds the `x-goog-api-key` header from
+        /// the Dart-side `.env`. See ADR-0003 Phase B.
+        /// </summary>
+        public string BuildProxyUrl()
+        {
+            return $"/api/gemini/{_model}:generateContent";
+        }
     }
 }

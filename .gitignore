@@ -53,6 +53,10 @@ app/assets/unity/Build/
 app/assets/unity/index.html
 app/assets/unity/TemplateData/
 
+# === Flutter secrets ===
+# Gemini API key etc. Only the .example template ships.
+app/.env
+
 # === Flutter generated files ===
 app/.dart_tool/
 app/.flutter-plugins
