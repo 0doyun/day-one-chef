@@ -121,7 +121,12 @@ namespace DayOneChef.Gameplay
         {
             var stations = FindObjectsByType<StationMarker>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             _kitchen = new KitchenState(_ingredientDefinitions ?? System.Array.Empty<IngredientDefinition>(), stations);
-            _executor = new ActionExecutor(_kitchen);
+            // Optional polish layer (Day 13). The executor still runs
+            // headlessly in EditMode tests where no ChefAnimator is in
+            // the scene; the null check there keeps the test suite green.
+            var animator = FindAnyObjectByType<ChefAnimator>(FindObjectsInactive.Exclude);
+            if (animator != null) animator.ResetVisuals();
+            _executor = new ActionExecutor(_kitchen, animator);
         }
 
         public async Task SubmitInstructionAsync(string instruction, CancellationToken ct = default)

@@ -18,13 +18,22 @@ namespace DayOneChef.Gameplay
 {
     public class ActionExecutor
     {
-        private const float ActionTickSeconds = 0.6f; // GDD §13 ACTION_TICK
+        // GDD §13 set ACTION_TICK to 0.6s for the headless prototype.
+        // Day 13 polish bumped this to 1.0s once the chef + station
+        // animations went in — at 0.6s the eye couldn't keep up with
+        // travel and bob inside the same beat. Round budget (≤10s
+        // total per ADR-0005) still holds: 5 verbs × 1.0s = 5s.
+        private const float ActionTickSeconds = 1.0f;
 
         private readonly KitchenState _kitchen;
+        private readonly IChefAnimator _animator;
 
-        public ActionExecutor(KitchenState kitchen)
+        public ActionExecutor(KitchenState kitchen) : this(kitchen, null) { }
+
+        public ActionExecutor(KitchenState kitchen, IChefAnimator animator)
         {
             _kitchen = kitchen ?? throw new System.ArgumentNullException(nameof(kitchen));
+            _animator = animator;
         }
 
         /// <summary>
@@ -51,6 +60,7 @@ namespace DayOneChef.Gameplay
                 Debug.Log(
                     $"[ActionExecutor] t={entry.t:F2}s #{i} verb={entry.verb} target={entry.target} " +
                     $"param={entry.param} skipped={entry.skipped} reason={entry.reason}");
+                NotifyAnimator(action, entry);
 
                 if (i < response.actions.Length - 1)
                 {
@@ -228,6 +238,17 @@ namespace DayOneChef.Gameplay
         {
             e.skipped = true;
             e.reason = reason;
+        }
+
+        private void NotifyAnimator(ChefAction action, EventLogEntry entry)
+        {
+            if (_animator == null) return;
+            // Skipped entries with unknown verbs are still surfaced so the
+            // animator can render a no-op wiggle; only swallow when the
+            // verb itself is unparseable, since then we have no enum to
+            // give the animator.
+            if (!GeminiPromptBuilder.TryParseVerb(action?.verb, out var verb)) return;
+            _animator.OnAction(verb, entry, _kitchen);
         }
     }
 }

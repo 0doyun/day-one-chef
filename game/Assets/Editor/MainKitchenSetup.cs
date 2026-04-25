@@ -74,7 +74,7 @@ namespace DayOneChef.Editor
 
             ConfigureCamera(out var cameraGo);
             CreateFloor();
-            var playerGo = CreatePlayer();
+            var playerGo = CreatePlayer(koreanFont);
             cameraGo.GetComponent<CameraFollow>().Target = playerGo.transform;
 
             CreateStation("Station_Fridge",       StationType.Fridge,       "냉장고",
@@ -139,7 +139,7 @@ namespace DayOneChef.Editor
             sr.sortingOrder = 0;
         }
 
-        private static GameObject CreatePlayer()
+        private static GameObject CreatePlayer(TMP_FontAsset koreanFont)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
             var player = new GameObject("Player");
@@ -157,6 +157,33 @@ namespace DayOneChef.Editor
             rb.freezeRotation = true;
             rb.linearDamping = 5f;
             player.AddComponent<PlayerController>();
+
+            // Day 13 polish: ChefAnimator + held-ingredient label child.
+            // The label is parented under Player so it follows the chef
+            // as the animator drives the transform.
+            var animator = player.AddComponent<ChefAnimator>();
+            var labelGo = new GameObject("HeldLabel");
+            labelGo.transform.SetParent(player.transform, worldPositionStays: false);
+            labelGo.transform.localPosition = new Vector3(0f, 1.0f, -0.1f);
+            labelGo.transform.localScale = new Vector3(
+                1f / player.transform.localScale.x,
+                1f / player.transform.localScale.y,
+                1f);
+            var tmp = labelGo.AddComponent<TextMeshPro>();
+            tmp.font = koreanFont;
+            tmp.text = string.Empty;
+            tmp.fontSize = 3.2f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = new Color(0.05f, 0.05f, 0.05f, 1f);
+            tmp.sortingOrder = 12;
+            labelGo.SetActive(false);
+            EditorUtility.SetDirty(tmp);
+
+            // Same SerializedObject dance as Customer._orderBubble — a
+            // direct setter doesn't survive into the saved scene YAML.
+            var serialized = new SerializedObject(animator);
+            serialized.FindProperty("_heldLabel").objectReferenceValue = tmp;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
             return player;
         }
 
