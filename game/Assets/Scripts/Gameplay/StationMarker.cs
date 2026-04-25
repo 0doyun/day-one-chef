@@ -26,6 +26,10 @@ namespace DayOneChef.Gameplay
         [SerializeField] private float _flashDuration = 0.45f;
         [SerializeField] private float _flashScale = 1.18f;
         [SerializeField] private float _flashBrightness = 0.4f;
+        [SerializeField] private Color _burstColor = new(1f, 1f, 1f, 1f);
+        [SerializeField] private int _burstCount = 7;
+        [SerializeField] private float _burstLifetime = 0.55f;
+        [SerializeField] private Sprite _burstSprite;
 
         private SpriteRenderer _sr;
         private Vector3 _baseScale;
@@ -53,6 +57,66 @@ namespace DayOneChef.Gameplay
             if (!isActiveAndEnabled) return;
             if (_activeFlash != null) StopCoroutine(_activeFlash);
             _activeFlash = StartCoroutine(FlashRoutine());
+            EmitBurst();
+        }
+
+        public void Configure(
+            StationType type,
+            string label,
+            Color burstColor,
+            Sprite burstSprite)
+        {
+            _stationType = type;
+            _displayLabel = label ?? string.Empty;
+            _burstColor = burstColor;
+            _burstSprite = burstSprite;
+        }
+
+        private void EmitBurst()
+        {
+            if (_burstSprite == null || _burstCount <= 0) return;
+            for (var i = 0; i < _burstCount; i++)
+            {
+                var go = new GameObject("Burst");
+                // Don't parent — the station's localScale (2.2 × 1.6)
+                // would distort the burst sprites and lose the directional
+                // velocity; spawn in world space and clean up via Destroy.
+                go.transform.position = transform.position;
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = _burstSprite;
+                sr.color = _burstColor;
+                sr.sortingOrder = 14;
+                go.transform.localScale = Vector3.one * 0.18f;
+                StartCoroutine(BurstRoutine(go, sr));
+            }
+        }
+
+        private IEnumerator BurstRoutine(GameObject go, SpriteRenderer sr)
+        {
+            // Random initial direction, biased upward so the visual
+            // reads as "energy rising off the station".
+            var dir = new Vector3(
+                Random.Range(-0.6f, 0.6f),
+                Random.Range(0.4f, 1.2f),
+                0f);
+            var speed = Random.Range(1.4f, 2.6f);
+            var t = 0f;
+            var dur = _burstLifetime;
+            var startColor = sr.color;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                var k = t / dur;
+                go.transform.position += dir * (speed * Time.deltaTime);
+                go.transform.localScale = Vector3.one * Mathf.Lerp(0.18f, 0.04f, k);
+                sr.color = new Color(
+                    startColor.r,
+                    startColor.g,
+                    startColor.b,
+                    Mathf.Lerp(startColor.a, 0f, k));
+                yield return null;
+            }
+            if (go != null) Destroy(go);
         }
 
         private IEnumerator FlashRoutine()
