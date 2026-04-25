@@ -11,14 +11,16 @@ namespace DayOneChef.Gameplay.Data
         fileName = "GeminiConfig")]
     public class GeminiConfig : ScriptableObject
     {
-        // `gemini-2.5-flash` is the plague-magnet free-tier default and
-        // returns sustained HTTP 503 ("This model is currently experiencing
-        // high demand") on the free quota. `-lite` is the same family, a
-        // cheaper/faster variant, and has far better free-tier
-        // availability while being more than enough quality for our
-        // instruction→action→monologue shape. Override in the .asset
-        // Inspector if paid quota or a different tier is in use.
-        [SerializeField] private string _model = "gemini-2.5-flash-lite";
+        // Day 13-B: settled on `gemini-2.5-flash`. The earlier hops
+        // (`gemini-2.5-flash-lite` → `gemini-2.0-flash`) failed for
+        // unrelated reasons: lite tier exhausted 250 RPD during
+        // 5-round playtests, and 2.0-flash was silently deprecated for
+        // new users (Google returned `429 limit:0 FREE_TIER` instead of
+        // the actual 404, which sent us down a billing rabbit hole).
+        // 2.5-flash is the current Gemini Flash model and works on
+        // both free and paid tier; override in the .asset Inspector if
+        // a different model is needed.
+        [SerializeField] private string _model = "gemini-2.5-flash";
 
         [Tooltip("Base URL of the generateContent endpoint. No trailing slash; " +
                  "no `?key=…` — the key is appended at request time.")]

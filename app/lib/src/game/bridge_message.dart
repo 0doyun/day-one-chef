@@ -8,6 +8,7 @@ import 'dart:convert';
 enum BridgeType {
   roundEnd('round_end'),
   sessionEnd('session_end'),
+  orderPresent('order_present'),
   consoleLog('console_log'),
   unknown('');
 
@@ -35,6 +36,8 @@ class BridgeMessage {
     this.eventLogJson = '',
     this.successCount = 0,
     this.failCount = 0,
+    this.recipeName = '',
+    this.components = const [],
     this.level = '',
     this.text = '',
   });
@@ -50,12 +53,23 @@ class BridgeMessage {
   final String eventLogJson;
   final int successCount;
   final int failCount;
+  // `order_present` payload — Flutter renders the right-panel recipe view
+  // from these instead of Unity's old on-canvas OrderCard.
+  final String recipeName;
+  final List<OrderComponent> components;
   // Debug forwarding (console_log) — populated by the index.html shim.
   final String level;
   final String text;
 
   factory BridgeMessage.fromJsonString(String raw) {
     final Map<String, dynamic> m = json.decode(raw) as Map<String, dynamic>;
+    final compsRaw = m['components'];
+    final components = <OrderComponent>[];
+    if (compsRaw is List) {
+      for (final c in compsRaw) {
+        if (c is Map) components.add(OrderComponent.fromMap(c.cast<String, dynamic>()));
+      }
+    }
     return BridgeMessage(
       type: BridgeType.parse(m['type'] as String?),
       orderId: (m['orderId'] as String?) ?? '',
@@ -68,8 +82,31 @@ class BridgeMessage {
       eventLogJson: (m['eventLogJson'] as String?) ?? '',
       successCount: (m['successCount'] as int?) ?? 0,
       failCount: (m['failCount'] as int?) ?? 0,
+      recipeName: (m['recipeName'] as String?) ?? '',
+      components: components,
       level: (m['level'] as String?) ?? '',
       text: (m['text'] as String?) ?? '',
     );
   }
+}
+
+class OrderComponent {
+  const OrderComponent({
+    required this.type,
+    required this.state,
+    required this.typeKr,
+    required this.stateKr,
+  });
+
+  final String type;
+  final String state;
+  final String typeKr;
+  final String stateKr;
+
+  factory OrderComponent.fromMap(Map<String, dynamic> m) => OrderComponent(
+        type: (m['type'] as String?) ?? '',
+        state: (m['state'] as String?) ?? '',
+        typeKr: (m['typeKr'] as String?) ?? '',
+        stateKr: (m['stateKr'] as String?) ?? '',
+      );
 }

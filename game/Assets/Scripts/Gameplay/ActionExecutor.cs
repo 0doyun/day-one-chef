@@ -19,11 +19,12 @@ namespace DayOneChef.Gameplay
     public class ActionExecutor
     {
         // GDD §13 set ACTION_TICK to 0.6s for the headless prototype.
-        // Day 13 polish bumped this to 1.0s once the chef + station
-        // animations went in — at 0.6s the eye couldn't keep up with
-        // travel and bob inside the same beat. Round budget (≤10s
-        // total per ADR-0005) still holds: 5 verbs × 1.0s = 5s.
-        private const float ActionTickSeconds = 1.0f;
+        // Day 13-B bumped this to 1.5s — at 1.0s the chef finished
+        // the recipe before the player could read the monologue
+        // bubble. Round budget extends to ~5 verbs × 1.5s = 7.5s
+        // execution + ~2s evaluator = ~9.5s, still inside the
+        // ADR-0005 ≤10s window for the comedy beat to land.
+        private const float ActionTickSeconds = 1.5f;
 
         private readonly KitchenState _kitchen;
         private readonly IChefAnimator _animator;

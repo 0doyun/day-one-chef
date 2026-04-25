@@ -7,6 +7,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'bridge_message.dart' show OrderComponent;
 import 'models/game_result.dart';
 
 class SessionInfo {
@@ -37,6 +38,24 @@ class SessionSummary {
 
 final sessionSummaryProvider = StateProvider<SessionSummary?>((ref) => null);
 
+class CurrentOrder {
+  const CurrentOrder({
+    required this.orderId,
+    required this.recipeName,
+    required this.roundIndex,
+    required this.totalRounds,
+    required this.components,
+  });
+
+  final String orderId;
+  final String recipeName;
+  final int roundIndex;
+  final int totalRounds;
+  final List<OrderComponent> components;
+}
+
+final currentOrderProvider = StateProvider<CurrentOrder?>((ref) => null);
+
 class GameResultsNotifier extends StateNotifier<List<GameResult>> {
   GameResultsNotifier() : super(const []);
 
@@ -46,5 +65,10 @@ class GameResultsNotifier extends StateNotifier<List<GameResult>> {
 
   void clear() {
     state = const [];
+  }
+
+  void removeLast() {
+    if (state.isEmpty) return;
+    state = state.sublist(0, state.length - 1);
   }
 }

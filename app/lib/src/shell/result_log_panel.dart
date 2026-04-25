@@ -16,8 +16,6 @@ class ResultLogPanel extends ConsumerWidget {
 
   final FlutterBridge? bridge;
 
-  static const double width = 300;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final br = bridge;
@@ -25,27 +23,21 @@ class ResultLogPanel extends ConsumerWidget {
     final results = ref.watch(gameResultsProvider);
     final summary = ref.watch(sessionSummaryProvider);
 
-    return SizedBox(
-      width: width,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.62),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(12),
-            bottomLeft: Radius.circular(12),
-          ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(results: results, summary: summary),
-            const Divider(height: 1, color: Colors.white12),
-            Expanded(child: _RoundList(results: results)),
-            const Divider(height: 1, color: Colors.white12),
-            _Footer(bridge: br),
-          ],
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Header(results: results, summary: summary),
+          const Divider(height: 1, color: Colors.white12),
+          Expanded(child: _RoundList(results: results)),
+          const Divider(height: 1, color: Colors.white12),
+          _Footer(bridge: br),
+        ],
       ),
     );
   }
@@ -196,84 +188,110 @@ class _ResultCard extends StatelessWidget {
         ? result.orderTitle
         : (result.orderId.isNotEmpty ? result.orderId : '주문 미상');
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(8),
-        border: Border(
-          left: BorderSide(color: accent, width: 3),
+    // Day 13-B: punchline-reveal entry. The newest card scales in
+    // from 0.92 + fades up over 320 ms so the eye is pulled to the
+    // evaluator's verdict the moment it lands. The animation only
+    // runs once on first build (fresh result), not on rebuilds.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) {
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(
+            scale: 0.92 + 0.08 * t,
+            alignment: Alignment.centerLeft,
+            child: child,
+          ),
+        );
+      },
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            left: BorderSide(color: accent, width: 3),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  result.success ? Icons.check_circle : Icons.cancel,
-                  color: accent,
-                  size: 14,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header: icon + small title. The header is intentionally
+              // demoted in the new hierarchy — the punchline reason
+              // (below) is the focal point of the card.
+              Row(
+                children: [
+                  Icon(
+                    result.success ? Icons.check_circle : Icons.cancel,
+                    color: accent,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
+                ],
+              ),
+              if (result.instruction.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                // "내 지시:" prefix re-establishes the cause→effect
+                // loop (player input → chef execution → verdict) that
+                // the original italic-quote style was burying.
+                Text(
+                  '내 지시  ›  ${result.instruction}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    height: 1.25,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (result.totalRounds > 0)
-                  Text(
-                    '${result.roundIndex + 1}/${result.totalRounds}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
               ],
-            ),
-            if (result.instruction.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                '"${result.instruction}"',
-                style: const TextStyle(
-                  color: Colors.white60,
-                  fontSize: 11,
-                  fontStyle: FontStyle.italic,
+              if (result.reason.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                // The verdict is the *punchline* — bumped to 14px,
+                // pure white, and given visual breathing room. This is
+                // the moment the player came for.
+                Text(
+                  result.reason,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ],
-            if (result.reason.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                result.reason,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.82),
-                  fontSize: 12,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Footer extends StatelessWidget {
+class _Footer extends ConsumerWidget {
   const _Footer({required this.bridge});
 
   final FlutterBridge bridge;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
@@ -281,7 +299,15 @@ class _Footer extends StatelessWidget {
           Expanded(
             child: TextButton.icon(
               icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
-              onPressed: () => bridge.sendResetRound(),
+              // Mid-game retry: drop the failed round's card so the
+              // panel doesn't double-count when Unity re-emits round_end
+              // for the same orderId. After session_end this is a no-op
+              // on the Unity side (queue exhausted), so just clearing
+              // keeps the visible state honest.
+              onPressed: () {
+                ref.read(gameResultsProvider.notifier).removeLast();
+                bridge.sendResetRound();
+              },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white70,
                 minimumSize: const Size.fromHeight(32),
@@ -294,7 +320,12 @@ class _Footer extends StatelessWidget {
           Expanded(
             child: TextButton.icon(
               icon: const Icon(Icons.restart_alt, size: 14, color: Colors.white70),
-              onPressed: () => bridge.sendRestartSession(),
+              onPressed: () {
+                ref.read(gameResultsProvider.notifier).clear();
+                ref.read(sessionSummaryProvider.notifier).state = null;
+                ref.read(currentOrderProvider.notifier).state = null;
+                bridge.sendRestartSession();
+              },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white70,
                 minimumSize: const Size.fromHeight(32),

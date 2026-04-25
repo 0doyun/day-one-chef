@@ -130,6 +130,14 @@ namespace DayOneChef.Gameplay.AI
                 {
                     temperature = 0.7f,
                     responseMimeType = "application/json",
+                    // gemini-2.5-flash is a thinking model — by default
+                    // it spends ~600+ tokens on internal reasoning per
+                    // call, which pushed our action-generation latency
+                    // past the 8s Unity / 10s proxy timeouts. Setting
+                    // budget=0 turns off thinking entirely; the
+                    // structured action JSON we ask for doesn't benefit
+                    // from extended deliberation.
+                    thinkingConfig = new ThinkingConfig { thinkingBudget = 0 },
                 },
             };
             return JsonUtility.ToJson(body);
@@ -212,6 +220,13 @@ namespace DayOneChef.Gameplay.AI
     {
         public float temperature;
         public string responseMimeType;
+        public ThinkingConfig thinkingConfig;
+    }
+
+    [Serializable]
+    internal class ThinkingConfig
+    {
+        public int thinkingBudget;
     }
 
     [Serializable]
