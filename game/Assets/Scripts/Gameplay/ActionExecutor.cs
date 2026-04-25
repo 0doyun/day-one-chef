@@ -54,12 +54,14 @@ namespace DayOneChef.Gameplay
 
                 if (i < response.actions.Length - 1)
                 {
-                    try
-                    {
-                        await Task.Delay(Mathf.RoundToInt(ActionTickSeconds * 1000), ct)
-                                  .ConfigureAwait(true);
-                    }
-                    catch (TaskCanceledException) { throw new System.OperationCanceledException(ct); }
+                    // `Task.Delay` does not resume on Unity's main thread
+                    // in WebGL builds — the .NET threadpool isn't there
+                    // to fire the timer continuation, so the executor
+                    // would stall after the first action. Unity 6's
+                    // `Awaitable.WaitForSecondsAsync` is coroutine-backed
+                    // and survives the single-threaded WebGL runtime.
+                    await Awaitable.WaitForSecondsAsync(ActionTickSeconds);
+                    ct.ThrowIfCancellationRequested();
                 }
             }
             Debug.Log($"[ActionExecutor] Done. entries={log.Count} finalState=({_kitchen.DumpFinalState()})");

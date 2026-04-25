@@ -8,6 +8,7 @@ import 'dart:convert';
 enum BridgeType {
   roundEnd('round_end'),
   sessionEnd('session_end'),
+  consoleLog('console_log'),
   unknown('');
 
   const BridgeType(this.wire);
@@ -34,6 +35,8 @@ class BridgeMessage {
     this.eventLogJson = '',
     this.successCount = 0,
     this.failCount = 0,
+    this.level = '',
+    this.text = '',
   });
 
   final BridgeType type;
@@ -47,6 +50,9 @@ class BridgeMessage {
   final String eventLogJson;
   final int successCount;
   final int failCount;
+  // Debug forwarding (console_log) — populated by the index.html shim.
+  final String level;
+  final String text;
 
   factory BridgeMessage.fromJsonString(String raw) {
     final Map<String, dynamic> m = json.decode(raw) as Map<String, dynamic>;
@@ -62,6 +68,8 @@ class BridgeMessage {
       eventLogJson: (m['eventLogJson'] as String?) ?? '',
       successCount: (m['successCount'] as int?) ?? 0,
       failCount: (m['failCount'] as int?) ?? 0,
+      level: (m['level'] as String?) ?? '',
+      text: (m['text'] as String?) ?? '',
     );
   }
 }

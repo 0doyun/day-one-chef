@@ -40,6 +40,17 @@ namespace DayOneChef.Gameplay.AI
             string playerInstruction,
             CancellationToken ct = default)
         {
+            // ADR-0003 Phase B: in a shipped WebGL build the API key
+            // stays on the Dart side. The Flutter shell's shelf server
+            // hosts `/api/gemini/{model}:generateContent` and injects
+            // the key from `.env`. Editor play keeps the Day 5 direct-
+            // from-Unity path so the offline/Editor loop still works
+            // without booting the Flutter host.
+#if UNITY_WEBGL && !UNITY_EDITOR
+            const bool useProxy = true;
+            string apiKey = null;
+#else
+            const bool useProxy = false;
             var apiKey = _apiKeyProvider();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
@@ -47,6 +58,7 @@ namespace DayOneChef.Gameplay.AI
                     "No API key configured. Open Tools → Day One Chef → Set Gemini API Key in the editor, " +
                     "or call GeminiCredentials.SetApiKey(key) at runtime.");
             }
+#endif
 
             var systemPrompt = GeminiPromptBuilder.BuildSystemPrompt();
             var userPrompt = GeminiPromptBuilder.BuildUserPrompt(state, playerInstruction);
@@ -58,7 +70,7 @@ namespace DayOneChef.Gameplay.AI
             {
                 try
                 {
-                    responseText = await SendOnceAsync(apiKey, requestBody, ct).ConfigureAwait(true);
+                    responseText = await SendOnceAsync(apiKey, requestBody, ct, useProxy).ConfigureAwait(true);
                     return ParseResponse(responseText);
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -71,9 +83,12 @@ namespace DayOneChef.Gameplay.AI
                 $"Gemini call failed after {_config.Retries + 1} attempt(s).", lastError);
         }
 
-        private async Task<string> SendOnceAsync(string apiKey, string body, CancellationToken ct)
+        private async Task<string> SendOnceAsync(string apiKey, string body, CancellationToken ct, bool useProxy)
         {
-            using var req = new UnityWebRequest(_config.BuildGenerateContentUrl(apiKey), "POST")
+            var url = useProxy
+                ? _config.BuildProxyUrl()
+                : _config.BuildGenerateContentUrl(apiKey);
+            using var req = new UnityWebRequest(url, "POST")
             {
                 uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body)),
                 downloadHandler = new DownloadHandlerBuffer(),

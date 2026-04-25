@@ -36,9 +36,15 @@ class FlutterBridge {
   }
 
   void _onIncoming(String raw) {
-    debugPrint('[FlutterBridge] <- Unity: $raw');
     try {
       final message = BridgeMessage.fromJsonString(raw);
+      // Console log forwarding stays out of the round-result router
+      // so it doesn't pollute the result log; print it raw and stop.
+      if (message.type == BridgeType.consoleLog) {
+        debugPrint('[Unity ${message.level}] ${message.text}');
+        return;
+      }
+      debugPrint('[FlutterBridge] <- Unity: $raw');
       switch (message.type) {
         case BridgeType.roundEnd:
           _handleRoundEnd(message);
@@ -50,6 +56,8 @@ class FlutterBridge {
             totalRounds: message.totalRounds,
           );
           break;
+        case BridgeType.consoleLog:
+          break; // handled above
         case BridgeType.unknown:
           debugPrint('[FlutterBridge] unknown message type; dropped.');
       }

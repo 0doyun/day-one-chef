@@ -2,9 +2,17 @@
 
 ## Status
 
-Proposed (2026-04-24, Day 5). Becomes Accepted once Day 8–9 ships the
-Flutter proxy implementation and the direct-from-Unity path is retired
-from production builds.
+Accepted (2026-04-25, Day 10). Phase B ships via a Dart `shelf_router`
+proxy at `/api/gemini/<model>:generateContent` (see
+`app/lib/src/shell/gemini_proxy.dart`). Unity `GeminiClient` switches
+to the relative proxy URL under `#if UNITY_WEBGL && !UNITY_EDITOR` and
+skips the API-key precondition; the key lives in `app/.env` (gitignored)
+and is injected by the proxy on every outbound request. Editor Play
+keeps the Day 5 direct-from-Unity path for offline loops.
+
+> Originally proposed 2026-04-24, Day 5, with Accepted gated on Day 8–9
+> ship of the Flutter proxy. Proxy landed one day late but the shape
+> matches the proposal.
 
 ## Date
 
