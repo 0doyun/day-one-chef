@@ -12,6 +12,7 @@ using UnityEngine;
 using DayOneChef.Bridge;
 using DayOneChef.Gameplay.AI;
 using DayOneChef.Gameplay.Data;
+using DayOneChef.Gameplay.UI;
 
 namespace DayOneChef.Gameplay
 {
@@ -45,8 +46,15 @@ namespace DayOneChef.Gameplay
         private IRoundEvaluator _evaluator;
         private KitchenState _kitchen;
         private ActionExecutor _executor;
+        private ChefAnimator _animator;
         private EventLog _lastEventLog;
         private RoundEvaluation _lastEvaluation;
+        // [SerializeField] so MainKitchenSetup's edit-time wiring
+        // survives SaveScene; without it the scene reloads with a null
+        // _hud at runtime and the OrderTitle / MonologuePanel sit empty.
+        [SerializeField] private KitchenHUD _hud;
+
+        public void BindHud(KitchenHUD hud) => _hud = hud;
 
         public RoundPhase Phase => _phase;
         public Order CurrentOrder => _queue?.Current;
@@ -94,12 +102,25 @@ namespace DayOneChef.Gameplay
         {
             BridgeIncoming.OnResetRoundRequested += HandleResetRoundFromBridge;
             BridgeIncoming.OnSessionRestartRequested += HandleSessionRestartFromBridge;
+            BridgeIncoming.OnSubmitInstructionRequested += HandleSubmitFromBridge;
         }
 
         private void OnDisable()
         {
             BridgeIncoming.OnResetRoundRequested -= HandleResetRoundFromBridge;
             BridgeIncoming.OnSessionRestartRequested -= HandleSessionRestartFromBridge;
+            BridgeIncoming.OnSubmitInstructionRequested -= HandleSubmitFromBridge;
+        }
+
+        private async void HandleSubmitFromBridge(string instruction)
+        {
+            // Fire-and-forget — Flutter is not awaiting completion; the
+            // round_end bridge message it emits later is the signal.
+            try { await SubmitInstructionAsync(instruction); }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[GameRound] SubmitInstruction from bridge failed: {ex}");
+            }
         }
 
         private void HandleResetRoundFromBridge()
@@ -124,9 +145,9 @@ namespace DayOneChef.Gameplay
             // Optional polish layer (Day 13). The executor still runs
             // headlessly in EditMode tests where no ChefAnimator is in
             // the scene; the null check there keeps the test suite green.
-            var animator = FindAnyObjectByType<ChefAnimator>(FindObjectsInactive.Exclude);
-            if (animator != null) animator.ResetVisuals();
-            _executor = new ActionExecutor(_kitchen, animator);
+            _animator = FindAnyObjectByType<ChefAnimator>(FindObjectsInactive.Exclude);
+            if (_animator != null) _animator.ResetVisuals();
+            _executor = new ActionExecutor(_kitchen, _animator);
         }
 
         public async Task SubmitInstructionAsync(string instruction, CancellationToken ct = default)
@@ -143,6 +164,8 @@ namespace DayOneChef.Gameplay
             }
 
             _phase = RoundPhase.CallingGemini;
+            _hud?.OnRoundCalling();
+            _animator?.ShowThinking();
             var order = _queue.Current;
             var snapshot = new GameStateSnapshot(
                 order?.Recipe?.DisplayName ?? string.Empty,
@@ -157,6 +180,8 @@ namespace DayOneChef.Gameplay
                 var client = _client ?? CreateDefaultClient();
                 var response = await client.GenerateActionsAsync(snapshot, instruction, ct);
                 LogResponse(order, response);
+                _animator?.HideThinking();
+                _hud?.StartMonologue(response?.monologue);
                 if (_executor != null)
                 {
                     _lastEventLog = await _executor.ExecuteAsync(response, ct);
@@ -172,6 +197,7 @@ namespace DayOneChef.Gameplay
             }
             finally
             {
+                _animator?.HideThinking();
                 EmitRoundEnd(order, instruction, failureReason);
                 AdvanceRound();
             }
@@ -234,6 +260,11 @@ namespace DayOneChef.Gameplay
                 reason = "evaluator not run";
             }
             if (success) _successCount++; else _failCount++;
+            // Customer face flips to ^_^ / ;_; — purely visual feedback,
+            // does not feed back into evaluation. Next round's
+            // PresentCurrentOrder() resets it to neutral via Configure().
+            if (_customer != null) _customer.ReactToOutcome(success);
+            _hud?.OnRoundEnd(success, reason);
 
             var eventLogJson = _lastEventLog?.ToJson() ?? "{\"entries\":[]}";
             UnityBridge.Send(BridgeMessage.RoundEnd(
@@ -299,9 +330,69 @@ namespace DayOneChef.Gameplay
             }
             _phase = RoundPhase.AwaitingInstruction;
             if (_customer != null) _customer.Configure(_queue.Current);
+            _hud?.PresentOrder(_queue.Current, _queue.ProcessedCount, _queue.Count);
+            EmitOrderPresent(_queue.Current);
             Debug.Log(
                 $"[GameRound] Round {_queue.ProcessedCount + 1}/{_queue.Count}: " +
                 $"{_queue.Current?.OrderId} — {_queue.Current?.Recipe?.DisplayName}");
         }
+
+        private void EmitOrderPresent(Order order)
+        {
+            // Day 13-B: the right-side Flutter panel owns the recipe view
+            // (replaced the on-canvas OrderCard). This message is the only
+            // contract — Flutter renders ingredient icons + state labels
+            // from the components array.
+            var recipe = order?.Recipe;
+            var comps = recipe?.Components;
+            var entries = new BridgeMessage.OrderComponentEntry[comps?.Count ?? 0];
+            if (comps != null)
+            {
+                for (var i = 0; i < comps.Count; i++)
+                {
+                    var c = comps[i];
+                    entries[i] = new BridgeMessage.OrderComponentEntry
+                    {
+                        type = c.Type.ToString(),
+                        state = c.RequiredState.ToString(),
+                        typeKr = KoreanIngredientName(c.Type),
+                        stateKr = KoreanStateName(c.RequiredState),
+                    };
+                }
+            }
+            UnityBridge.Send(BridgeMessage.OrderPresent(
+                orderId: order?.OrderId ?? string.Empty,
+                recipeName: recipe?.DisplayName ?? string.Empty,
+                roundIndex: _queue?.ProcessedCount ?? 0,
+                totalRounds: _queue?.Count ?? 0,
+                components: entries));
+        }
+
+        private static string KoreanIngredientName(IngredientType t) => t switch
+        {
+            IngredientType.Bread   => "빵",
+            IngredientType.Patty   => "패티",
+            IngredientType.Cheese  => "치즈",
+            IngredientType.Lettuce => "상추",
+            IngredientType.Tomato  => "토마토",
+            IngredientType.Egg     => "계란",
+            _ => t.ToString(),
+        };
+
+        private static string KoreanStateName(IngredientState s) => s switch
+        {
+            IngredientState.Raw     => "그대로",
+            IngredientState.Cooked  => "익힘",
+            IngredientState.Burnt   => "탐",
+            IngredientState.Whole   => "통째로",
+            IngredientState.Sliced  => "슬라이스",
+            IngredientState.Chopped => "썬 상태",
+            IngredientState.Washed  => "씻음",
+            IngredientState.Shell   => "껍질 상태",
+            IngredientState.Cracked => "껍질 깸",
+            IngredientState.Beaten  => "풀어둠",
+            IngredientState.Mixed   => "물·소금 섞음",
+            _ => s.ToString(),
+        };
     }
 }

@@ -35,6 +35,37 @@ namespace DayOneChef.Bridge
         public int successCount;
         public int failCount;
 
+        // `order_present` extras ---------------------------------------------
+        // Sent when the next order becomes the active one. Flutter renders
+        // the recipe panel from these — Unity no longer owns the on-canvas
+        // OrderCard, so this is the authoritative recipe surface.
+        public string recipeName;
+        public OrderComponentEntry[] components;
+
+        [Serializable]
+        public class OrderComponentEntry
+        {
+            public string typeKr;   // "빵"
+            public string stateKr;  // "익힘"
+            public string type;     // enum name e.g. "Bread"
+            public string state;    // enum name e.g. "Cooked"
+        }
+
+        public static BridgeMessage OrderPresent(
+            string orderId, string recipeName, int roundIndex, int totalRounds,
+            OrderComponentEntry[] components)
+        {
+            return new BridgeMessage
+            {
+                type = "order_present",
+                orderId = orderId,
+                recipeName = recipeName,
+                roundIndex = roundIndex,
+                totalRounds = totalRounds,
+                components = components,
+            };
+        }
+
         public static BridgeMessage RoundEnd(
             string orderId, string orderTitle, int roundIndex, int totalRounds,
             string instruction, bool success, string reason, string eventLogJson)

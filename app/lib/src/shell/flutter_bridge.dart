@@ -56,6 +56,15 @@ class FlutterBridge {
             totalRounds: message.totalRounds,
           );
           break;
+        case BridgeType.orderPresent:
+          ref.read(currentOrderProvider.notifier).state = CurrentOrder(
+            orderId: message.orderId,
+            recipeName: message.recipeName,
+            roundIndex: message.roundIndex,
+            totalRounds: message.totalRounds,
+            components: message.components,
+          );
+          break;
         case BridgeType.consoleLog:
           break; // handled above
         case BridgeType.unknown:
@@ -84,6 +93,8 @@ class FlutterBridge {
 
   Future<void> sendResetRound() => _sendToUnity('ResetRound');
   Future<void> sendRestartSession() => _sendToUnity('RestartSession');
+  Future<void> sendSubmitInstruction(String text) =>
+      _sendToUnity('SubmitInstruction', text);
 
   Future<void> _sendToUnity(String method, [String payload = '']) async {
     // The JS bootstrap in the Unity template exposes
