@@ -50,7 +50,11 @@ class GeminiProxy {
             },
             body: body,
           )
-          .timeout(const Duration(seconds: 10));
+          // 20s upstream timeout (Unity's per-request budget is 8s — see
+          // GeminiConfig.TimeoutSeconds — and fires first; this is the
+          // outer safety net for the rare case where 2.5-flash thinking
+          // re-enables itself or upstream stalls).
+          .timeout(const Duration(seconds: 20));
 
       debugPrint('[GeminiProxy] ← HTTP ${upstream.statusCode} '
           '(${upstream.bodyBytes.length} bytes)');

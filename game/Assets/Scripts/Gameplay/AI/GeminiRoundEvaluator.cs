@@ -116,6 +116,10 @@ namespace DayOneChef.Gameplay.AI
                 {
                     temperature = EvaluatorTemperature,
                     responseMimeType = "application/json",
+                    // See GeminiClient.BuildRequestJson — disable
+                    // 2.5-flash thinking tokens to keep evaluator
+                    // latency under the 8s timeout.
+                    thinkingConfig = new ThinkingConfig { thinkingBudget = 0 },
                 },
             };
             return JsonUtility.ToJson(body);
