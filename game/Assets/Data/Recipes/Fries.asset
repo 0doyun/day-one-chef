@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9ce5d8e4b1284e01b7f9164487df79b, type: 3}
+  m_Name: Fries
+  m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.Recipe
+  _displayName: "\uAC10\uC790\uD280\uAE40"
+  _components:
+  - Type: 7
+    RequiredState: 1
+  _orderSensitive: 1
+  _procedureNotes: "\uAC10\uC790\uB97C \uAE68\uB057\uC774 \uC53B\uACE0(wash) \uB3C4\uB9C8\uC5D0\uC11C
+    \uC36C(chop) \uB4A4 \uD654\uAD6C\uC5D0 \uD280\uAE34\uB2E4. \uC53B\uAE30\uC640
+    \uC370\uAE30 \uB2E8\uACC4 \uBAA8\uB450 \uD544\uC218 \u2014 \uC548 \uC53B\uC73C\uBA74
+    \uD759\uC774 \uBB3B\uC5B4 \uC788\uACE0, \uC548 \uC370\uBA74 \uD1B5\uAC10\uC790\uAC00
+    \uADF8\uB300\uB85C \uC775\uB294\uB2E4."

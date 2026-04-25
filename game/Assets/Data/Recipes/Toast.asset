@@ -12,8 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9ce5d8e4b1284e01b7f9164487df79b, type: 3}
   m_Name: Toast
   m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.Recipe
-  _displayName: "\uD50C\uB808\uC778 \uD1A0\uC2A4\uD2B8"
+  _displayName: "\uD1A0\uC2A4\uD2B8"
   _components:
   - Type: 1
     RequiredState: 1
   _orderSensitive: 0
+  _procedureNotes: "\uBE75\uC744 \uD654\uAD6C\uC5D0 \uC62C\uB824 \uAD7D\uB294\uB2E4.
+    \uB2E4\uB978 \uC7AC\uB8CC\uB294 \uC4F0\uC9C0 \uC54A\uB294\uB2E4."

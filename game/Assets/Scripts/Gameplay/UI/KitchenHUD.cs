@@ -246,6 +246,8 @@ namespace DayOneChef.Gameplay.UI
             IngredientType.Lettuce => "상추",
             IngredientType.Tomato  => "토마토",
             IngredientType.Egg     => "계란",
+            IngredientType.Cabbage => "양배추",
+            IngredientType.Potato  => "감자",
             _ => t.ToString(),
         };
 

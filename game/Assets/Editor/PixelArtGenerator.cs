@@ -45,6 +45,8 @@ namespace DayOneChef.Editor
         public const string Ing_Lettuce  = "Ing_Lettuce";
         public const string Ing_Tomato   = "Ing_Tomato";
         public const string Ing_Egg      = "Ing_Egg";
+        public const string Ing_Cabbage  = "Ing_Cabbage";
+        public const string Ing_Potato   = "Ing_Potato";
 
         // --- Master palette (12 colors) --------------------------------------
         // Day 13-B: every sprite color must come from this list. Variable
@@ -162,6 +164,8 @@ namespace DayOneChef.Editor
             ConfigureExternalSprite(Ing_Lettuce, 32f);
             ConfigureExternalSprite(Ing_Tomato,  32f);
             ConfigureExternalSprite(Ing_Egg,     32f);
+            ConfigureExternalSprite(Ing_Cabbage, 32f);
+            ConfigureExternalSprite(Ing_Potato,  32f);
             AssetDatabase.Refresh();
         }
 
