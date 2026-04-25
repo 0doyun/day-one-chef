@@ -69,6 +69,10 @@ class FlutterBridge {
   void _handleRoundEnd(BridgeMessage m) {
     final result = GameResult(
       orderId: m.orderId,
+      orderTitle: m.orderTitle,
+      roundIndex: m.roundIndex,
+      totalRounds: m.totalRounds,
+      instruction: m.instruction,
       success: m.success,
       reason: m.reason,
       receivedAt: DateTime.now(),

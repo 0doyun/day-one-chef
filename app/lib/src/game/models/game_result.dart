@@ -1,29 +1,29 @@
 // Round outcome published by Unity over the bridge and appended to the
-// session's results log. Wire schema is intentionally minimal for
-// Day 8 — the evaluator (Day 11) will fill in richer reason strings
-// and failure categories.
+// session's results log. Schema mirrors BridgeMessage.RoundEnd —
+// Unity already sends orderTitle / roundIndex / totalRounds /
+// instruction, so the result log UI can render rich Korean rows
+// without a second round-trip.
 
 class GameResult {
   const GameResult({
     required this.orderId,
+    required this.orderTitle,
+    required this.roundIndex,
+    required this.totalRounds,
+    required this.instruction,
     required this.success,
     required this.reason,
     required this.receivedAt,
   });
 
   final String orderId;
+  final String orderTitle;
+  final int roundIndex;
+  final int totalRounds;
+  final String instruction;
   final bool success;
   final String reason;
   final DateTime receivedAt;
-
-  factory GameResult.fromBridgeJson(Map<String, dynamic> json) {
-    return GameResult(
-      orderId: (json['orderId'] as String?) ?? '',
-      success: (json['success'] as bool?) ?? false,
-      reason: (json['reason'] as String?) ?? '',
-      receivedAt: DateTime.now(),
-    );
-  }
 
   @override
   String toString() => 'GameResult($orderId, success=$success, reason="$reason")';
