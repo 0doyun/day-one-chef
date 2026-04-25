@@ -42,9 +42,11 @@ namespace DayOneChef.Gameplay
         private OrderQueue _queue;
         private RoundPhase _phase = RoundPhase.Idle;
         private IGeminiClient _client;
+        private IRoundEvaluator _evaluator;
         private KitchenState _kitchen;
         private ActionExecutor _executor;
         private EventLog _lastEventLog;
+        private RoundEvaluation _lastEvaluation;
 
         public RoundPhase Phase => _phase;
         public Order CurrentOrder => _queue?.Current;
@@ -144,6 +146,7 @@ namespace DayOneChef.Gameplay
                 _availableStationsForPrompt);
 
             string failureReason = null;
+            _lastEvaluation = null;
             try
             {
                 var client = _client ?? CreateDefaultClient();
@@ -154,6 +157,8 @@ namespace DayOneChef.Gameplay
                     _lastEventLog = await _executor.ExecuteAsync(response, ct);
                     Debug.Log($"[GameRound] EventLog JSON: {_lastEventLog.ToJson()}");
                 }
+                _lastEvaluation = await EvaluateRoundAsync(order, instruction, ct);
+                Debug.Log($"[GameRound] Evaluator: success={_lastEvaluation.success} reason=\"{_lastEvaluation.reason}\"");
             }
             catch (GeminiCallException ex)
             {
@@ -167,15 +172,62 @@ namespace DayOneChef.Gameplay
             }
         }
 
+        private async Task<RoundEvaluation> EvaluateRoundAsync(Order order, string instruction, CancellationToken ct)
+        {
+            var evaluator = _evaluator ?? CreateDefaultEvaluator();
+            if (evaluator == null || _lastEventLog == null || _kitchen == null)
+            {
+                return RoundEvaluation.Failure("evaluator not configured");
+            }
+
+            var ctx = new EvaluationContext
+            {
+                Order = order,
+                PlayerInstruction = instruction,
+                EventLog = _lastEventLog,
+                FinalState = _kitchen.State,
+            };
+            try
+            {
+                return await evaluator.EvaluateAsync(ctx, ct);
+            }
+            catch (GeminiCallException ex)
+            {
+                Debug.LogWarning($"[GameRound] Evaluator failed, treating round as fail: {ex.Message}");
+                return RoundEvaluation.Failure($"evaluator error: {ex.Message}");
+            }
+        }
+
+        private IRoundEvaluator CreateDefaultEvaluator()
+        {
+            if (_geminiConfig == null) return null;
+            _evaluator = new GeminiRoundEvaluator(_geminiConfig);
+            return _evaluator;
+        }
+
         private void EmitRoundEnd(Order order, string instruction, string failureReason)
         {
-            // Day 11 evaluator (call #2) fills success/reason properly.
-            // Until then, we publish the round with `success=false,
-            // reason="pending evaluator"` unless the Gemini call itself
-            // failed outright. Flutter still sees a `round_end` per
-            // round and can display event_log / instruction / orderId.
-            var success = false;
-            var reason = failureReason ?? "pending evaluator (Day 11)";
+            // Day 11: Gemini call #2 (the evaluator) fills success +
+            // reason. If the evaluator never ran (call #1 threw before
+            // executor finished), `failureReason` carries the upstream
+            // error; otherwise `_lastEvaluation` is authoritative.
+            bool success;
+            string reason;
+            if (failureReason != null)
+            {
+                success = false;
+                reason = failureReason;
+            }
+            else if (_lastEvaluation != null)
+            {
+                success = _lastEvaluation.success;
+                reason = _lastEvaluation.reason;
+            }
+            else
+            {
+                success = false;
+                reason = "evaluator not run";
+            }
             if (success) _successCount++; else _failCount++;
 
             var eventLogJson = _lastEventLog?.ToJson() ?? "{\"entries\":[]}";

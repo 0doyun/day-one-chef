@@ -182,44 +182,48 @@ namespace DayOneChef.Gameplay.AI
             }
         }
 
-        // --- Minimal Gemini REST wire types — only the fields we need ---
+    }
 
-        [Serializable]
-        private class GeminiRequestBody
-        {
-            public ContentBlock systemInstruction;
-            public ContentBlock[] contents;
-            public GenerationConfig generationConfig;
-        }
+    // --- Minimal Gemini REST wire types — only the fields we need ---
+    // Hoisted out of GeminiClient so the Day 11 evaluator
+    // (`GeminiRoundEvaluator`) can reuse the same envelope shapes
+    // without a refactor when a third call lands.
 
-        [Serializable]
-        private class ContentBlock
-        {
-            public string role;
-            public Part[] parts;
-        }
+    [Serializable]
+    internal class GeminiRequestBody
+    {
+        public ContentBlock systemInstruction;
+        public ContentBlock[] contents;
+        public GenerationConfig generationConfig;
+    }
 
-        [Serializable]
-        private class Part { public string text; }
+    [Serializable]
+    internal class ContentBlock
+    {
+        public string role;
+        public Part[] parts;
+    }
 
-        [Serializable]
-        private class GenerationConfig
-        {
-            public float temperature;
-            public string responseMimeType;
-        }
+    [Serializable]
+    internal class Part { public string text; }
 
-        [Serializable]
-        private class GeminiResponseEnvelope
-        {
-            public Candidate[] candidates;
-        }
+    [Serializable]
+    internal class GenerationConfig
+    {
+        public float temperature;
+        public string responseMimeType;
+    }
 
-        [Serializable]
-        private class Candidate
-        {
-            public ContentBlock content;
-            public string finishReason;
-        }
+    [Serializable]
+    internal class GeminiResponseEnvelope
+    {
+        public Candidate[] candidates;
+    }
+
+    [Serializable]
+    internal class Candidate
+    {
+        public ContentBlock content;
+        public string finishReason;
     }
 }

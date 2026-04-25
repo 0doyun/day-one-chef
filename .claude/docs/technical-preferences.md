@@ -86,9 +86,7 @@
 - [ADR-0003](../../docs/architecture/ADR-0003-gemini-call-architecture.md) — Gemini Call Architecture (Proposed 2026-04-24) — direct-from-Unity client behind `IGeminiClient` for Day 5, Flutter-proxy implementation swaps in on Day 8–9
 - [ADR-0004](../../docs/architecture/ADR-0004-action-executor-model.md) — Chef Action Executor Model (Proposed 2026-04-24) — state-machine with per-verb handlers; event log shape locked as Day 11 evaluator contract
 - [ADR-0002](../../docs/architecture/ADR-0002-bridge-message-protocol.md) — Bridge Message Protocol (Proposed 2026-04-25) — flat JSON envelope via a single `FlutterBridge` JS channel + `BridgeReceiver` Unity GameObject
-
-**Remaining ADRs to author:**
-5. **Evaluator ground-truth contract** — what data Unity collects per round for Gemini evaluation (includes event log for order-sensitive recipes like 계란찜)
+- [ADR-0005](../../docs/architecture/ADR-0005-evaluator-ground-truth-contract.md) — Evaluator Ground-Truth Contract (Proposed 2026-04-25) — Gemini call #2 with Korean prose prompt + `{success,reason}` JSON response, low-temperature, fills the `round_end.success` slot
 
 ## Engine Specialists
 
