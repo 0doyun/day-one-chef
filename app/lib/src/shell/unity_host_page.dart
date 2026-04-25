@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../game/providers.dart';
 import 'flutter_bridge.dart';
+import 'result_log_panel.dart';
 import 'unity_assets.dart';
 import 'unity_server.dart';
 
@@ -124,82 +124,26 @@ class _UnityHostPageState extends ConsumerState<UnityHostPage> {
         ),
       );
     }
-    return Stack(
+    return Row(
       children: [
-        WebViewWidget(controller: controller),
-        if (_loadPercent < 100)
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: LinearProgressIndicator(
-              value: _loadPercent / 100,
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-            ),
-          ),
-        Positioned(
-          right: 12, bottom: 12,
-          child: _BridgeControls(
-            bridge: _bridge,
-            results: ref.watch(gameResultsProvider),
-            summary: ref.watch(sessionSummaryProvider),
+        Expanded(
+          child: Stack(
+            children: [
+              WebViewWidget(controller: controller),
+              if (_loadPercent < 100)
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  child: LinearProgressIndicator(
+                    value: _loadPercent / 100,
+                    minHeight: 2,
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+            ],
           ),
         ),
+        ResultLogPanel(bridge: _bridge),
       ],
-    );
-  }
-}
-
-class _BridgeControls extends StatelessWidget {
-  const _BridgeControls({
-    required this.bridge,
-    required this.results,
-    required this.summary,
-  });
-
-  final FlutterBridge? bridge;
-  final List<dynamic> results;
-  final SessionSummary? summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final br = bridge;
-    if (br == null) return const SizedBox.shrink();
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              summary == null
-                  ? '라운드 수신: ${results.length}'
-                  : '세션 완료: ${summary!.successCount}/${summary!.totalRounds}',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextButton(
-                  style: TextButton.styleFrom(foregroundColor: Colors.white70, minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                  onPressed: () => br.sendResetRound(),
-                  child: const Text('라운드 리셋', style: TextStyle(fontSize: 11)),
-                ),
-                TextButton(
-                  style: TextButton.styleFrom(foregroundColor: Colors.white70, minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                  onPressed: () => br.sendRestartSession(),
-                  child: const Text('세션 재시작', style: TextStyle(fontSize: 11)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
