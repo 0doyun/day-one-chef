@@ -19,9 +19,14 @@ class UnityAssetsExtractor {
   /// the application's support directory and returns the root of the
   /// extracted tree.
   ///
-  /// Idempotent: asset files are overwritten only when the bundled size
-  /// differs from the on-disk size, which keeps normal launches cheap
-  /// while still picking up a rebuilt Unity payload after `flutter run`.
+  /// Cache strategy: byte-level compare. We always have to load the
+  /// asset bytes from rootBundle to know the new content anyway, so a
+  /// length-only check (the previous heuristic) is an unsafe optimisation
+  /// — Day 13 chef-animator builds shipped the same 10.5 MB wasm size
+  /// after code changes, and the size-stable cache silently kept the
+  /// old build. Always comparing bytes keeps reads cheap (rootBundle
+  /// uses a memory-mapped view in release) and only pays the disk write
+  /// cost when content actually changed.
   static Future<Directory> extract() async {
     final support = await getApplicationSupportDirectory();
     final target = Directory(p.join(support.path, 'unity_web'));
@@ -42,13 +47,23 @@ class UnityAssetsExtractor {
       final data = await rootBundle.load(assetKey);
       final bytes = data.buffer.asUint8List();
 
-      if (outFile.existsSync() && outFile.lengthSync() == bytes.length) {
-        continue; // size-stable cache hit
+      if (outFile.existsSync() &&
+          outFile.lengthSync() == bytes.length &&
+          _bytesEqual(outFile.readAsBytesSync(), bytes)) {
+        continue;
       }
 
       await outFile.writeAsBytes(bytes, flush: true);
     }
 
     return target;
+  }
+
+  static bool _bytesEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 }
