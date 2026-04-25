@@ -47,4 +47,5 @@ flutter:
   assets:
     - assets/unity/
     - assets/unity/Build/
+    - assets/icons/
     - .env
