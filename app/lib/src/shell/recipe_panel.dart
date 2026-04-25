@@ -140,6 +140,8 @@ class _ComponentRow extends StatelessWidget {
     'Lettuce': 'assets/icons/Ing_Lettuce.png',
     'Tomato': 'assets/icons/Ing_Tomato.png',
     'Egg': 'assets/icons/Ing_Egg.png',
+    'Cabbage': 'assets/icons/Ing_Cabbage.png',
+    'Potato': 'assets/icons/Ing_Potato.png',
   };
 
   @override
