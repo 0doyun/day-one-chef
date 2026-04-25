@@ -13,5 +13,7 @@ namespace DayOneChef.Gameplay.Data
         Lettuce, // 상추
         Tomato,  // 토마토
         Egg,     // 계란
+        Cabbage, // 양배추
+        Potato,  // 감자
     }
 }

@@ -10,11 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7f01ce8f507554909a20950f986a2d76, type: 3}
-  m_Name: Order_03_Cheeseburger
+  m_Name: Order_02_SteamedEgg
   m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.Order
-  _orderId: "\uBC84\uAC70-01"
-  _recipe: {fileID: 11400000, guid: d0fb5425dd2714d67b974a5331bef1e7, type: 2}
+  _orderId: "\uACC4\uB780\uCC1C-01"
+  _recipe: {fileID: 11400000, guid: af7c1d42a31ed46879887dd61134abe7, type: 2}
   _customerMood: 1
-  _exampleInstruction: "\uD328\uD2F0 \uAD6C\uC6B4 \uB2E4\uC74C \uC544\uB798 \uBE75\uC5D0
-    \uD328\uD2F0 \uC62C\uB9AC\uACE0 \uCE58\uC988 \uC0C1\uCD94 \uC62C\uB824\uC11C
-    \uBE75\uC73C\uB85C \uB36E\uC5B4"
+  _exampleInstruction: "\uACC4\uB780 \uAE68\uC11C \uD480\uACE0 \uD654\uAD6C\uC5D0\uC11C
+    \uC775\uD600\uC918"

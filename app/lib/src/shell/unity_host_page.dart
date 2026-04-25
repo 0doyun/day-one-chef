@@ -10,8 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../game/providers.dart';
 import 'flutter_bridge.dart';
 import 'punchline_flash.dart';
+import 'session_end_dialog.dart';
 import 'side_panel.dart';
 import 'unity_assets.dart';
 import 'unity_server.dart';
@@ -93,6 +95,16 @@ class _UnityHostPageState extends ConsumerState<UnityHostPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Pop the end-of-day modal the moment the evaluator's summary
+    // lands. The result-log header alone changing to "세션 완료 N/5"
+    // wasn't enough of a signal — players were left wondering whether
+    // the game had frozen on the last round.
+    ref.listen<SessionSummary?>(sessionSummaryProvider, (prev, next) {
+      if (prev == null && next != null) {
+        final br = _bridge;
+        if (br != null) SessionEndDialog.show(context, br);
+      }
+    });
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       body: SafeArea(child: _body()),

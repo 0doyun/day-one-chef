@@ -28,16 +28,27 @@ namespace DayOneChef.Gameplay.Data
         [SerializeField] private string _displayName;
         [SerializeField] private RecipeComponent[] _components = Array.Empty<RecipeComponent>();
         [SerializeField] private bool _orderSensitive;
+        // Procedure notes — Korean-language description of the cooking
+        // technique that distinguishes this dish from siblings. Read
+        // by the evaluator prompt so Gemini can verify the event_log's
+        // verb sequence, not just the final ingredient state. Without
+        // this, "계란 익혀" passed both 오믈렛 and 계란찜 (both end with
+        // egg in state Cooked) since Components alone can't capture
+        // whether the egg went through Mix.
+        [SerializeField, TextArea(2, 4)] private string _procedureNotes;
 
         public string DisplayName => _displayName;
         public IReadOnlyList<RecipeComponent> Components => _components;
         public bool OrderSensitive => _orderSensitive;
+        public string ProcedureNotes => _procedureNotes ?? string.Empty;
 
-        public void Configure(string displayName, RecipeComponent[] components, bool orderSensitive)
+        public void Configure(string displayName, RecipeComponent[] components,
+                               bool orderSensitive, string procedureNotes = null)
         {
             _displayName = displayName ?? string.Empty;
             _components = components ?? Array.Empty<RecipeComponent>();
             _orderSensitive = orderSensitive;
+            _procedureNotes = procedureNotes ?? string.Empty;
         }
 
         /// <summary>

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DayOneChef.Gameplay::DayOneChef.Gameplay.Data.OrderCatalog
   _orders:
   - {fileID: 11400000, guid: ea62c334dcc2442d7b40b26870f7c722, type: 2}
-  - {fileID: 11400000, guid: f66c9fe8df3ee431bac187986414e235, type: 2}
-  - {fileID: 11400000, guid: 8ef809656ab8a49638cf9b87c90ea45b, type: 2}
-  - {fileID: 11400000, guid: 547b8f9c5310c4094bbbebce9c00681b, type: 2}
-  - {fileID: 11400000, guid: b44f38660543b46509b8f1681dde4c43, type: 2}
+  - {fileID: 11400000, guid: a975977ba44024dc2b8f72dcfe37138e, type: 2}
+  - {fileID: 11400000, guid: cd5fa3956573a449a94547146d19ec1f, type: 2}
+  - {fileID: 11400000, guid: 15a945b8875b846b1863151317d5332b, type: 2}
+  - {fileID: 11400000, guid: 813b7a2640ce84840bbd60c7670bd7e2, type: 2}

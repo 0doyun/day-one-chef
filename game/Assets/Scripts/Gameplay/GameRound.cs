@@ -33,7 +33,7 @@ namespace DayOneChef.Gameplay
         [SerializeField] private IngredientDefinition[] _ingredientDefinitions;
         [SerializeField] private List<string> _availableIngredientsForPrompt = new()
         {
-            "패티", "빵", "치즈", "상추", "토마토", "계란",
+            "패티", "빵", "치즈", "상추", "토마토", "계란", "양배추", "감자",
         };
         [SerializeField] private List<string> _availableStationsForPrompt = new()
         {
@@ -376,6 +376,8 @@ namespace DayOneChef.Gameplay
             IngredientType.Lettuce => "상추",
             IngredientType.Tomato  => "토마토",
             IngredientType.Egg     => "계란",
+            IngredientType.Cabbage => "양배추",
+            IngredientType.Potato  => "감자",
             _ => t.ToString(),
         };
 

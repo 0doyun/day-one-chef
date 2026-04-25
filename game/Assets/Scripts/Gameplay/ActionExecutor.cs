@@ -160,13 +160,21 @@ namespace DayOneChef.Gameplay
                 Skip(e, $"unknown ingredient '{e.target}'");
                 return;
             }
-            if (!_kitchen.TrySetState(type, IngredientState.Chopped, out var reason))
+            // Chop is the player-facing "cut this" verb, but the resulting
+            // state is ingredient-specific: cheese slices, lettuce/tomato
+            // chops. Without this branch, asking the chef to "치즈 슬라이스"
+            // routes through Chop and fails because IngredientDefinition
+            // for Cheese only permits Whole / Sliced, not Chopped.
+            var nextState = type == IngredientType.Cheese
+                ? IngredientState.Sliced
+                : IngredientState.Chopped;
+            if (!_kitchen.TrySetState(type, nextState, out var reason))
             {
                 Skip(e, reason);
                 return;
             }
             e.resolvedType = type.ToString();
-            e.resolvedState = IngredientState.Chopped.ToString();
+            e.resolvedState = nextState.ToString();
         }
 
         private void ApplyCrack(EventLogEntry e)

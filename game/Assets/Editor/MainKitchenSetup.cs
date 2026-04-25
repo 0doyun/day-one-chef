@@ -109,7 +109,7 @@ namespace DayOneChef.Editor
             CreateStation("Station_CuttingBoard", StationType.CuttingBoard, "도마",
                 new Vector3(-1.7f, 3.5f, 0f), new Color(1f, 1f, 1f, 1f),
                 new Color(1f, 1f, 1f, 1f), koreanFont,
-                bodySprite: boardSprite, bodyScale: new Vector3(1.7f, 1.7f, 1f));
+                bodySprite: assemblySprite, bodyScale: new Vector3(1.7f, 1.7f, 1f));
             CreateStation("Station_Stove",        StationType.Stove,        "화구",
                 new Vector3( 1.7f, 3.5f, 0f), new Color(1f, 1f, 1f, 1f),
                 new Color(1f, 0.78f, 0.30f, 1f), koreanFont,
@@ -117,14 +117,19 @@ namespace DayOneChef.Editor
             CreateStation("Station_Assembly",     StationType.Assembly,     "조립대",
                 new Vector3( 5f, 3.5f, 0f), new Color(1f, 1f, 1f, 1f),
                 new Color(1f, 0.95f, 0.65f, 1f), koreanFont,
-                bodySprite: assemblySprite, bodyScale: new Vector3(1.7f, 1.7f, 1f));
+                bodySprite: boardSprite, bodyScale: new Vector3(1.7f, 1.7f, 1f));
+            // Day 13-C: counter sits between chef and customer — closer
+            // to the chef on the back wall side. Customer stands at the
+            // viewer's edge (bottom of screen, closer to camera), drawn
+            // OVER the counter so the body silhouette stays whole and the
+            // counter reads as the bar between them.
             CreateStation("Station_Counter",      StationType.Counter,      "카운터",
-                new Vector3( 0f, -2.7f, 0f), new Color(1f, 1f, 1f, 1f),
+                new Vector3( 0f, -3.2f, 0f), new Color(1f, 1f, 1f, 1f),
                 new Color(0.85f, 1f, 0.85f, 1f), koreanFont,
-                bodySprite: counterSprite, bodyScale: new Vector3(1.7f, 1.7f, 1f));
+                bodySprite: counterSprite, bodyScale: new Vector3(2.6f, 1.4f, 1f));
 
             var customerGo = CreateCustomer(
-                new Vector3(0f, -3.7f, 0f),
+                new Vector3(0f, -3.6f, 0f),
                 new Color(0.85f, 0.60f, 0.90f, 1f),
                 koreanFont);
 
@@ -301,6 +306,8 @@ namespace DayOneChef.Editor
                 (IngredientType.Lettuce, PixelArtGenerator.Load(PixelArtGenerator.Ing_Lettuce)),
                 (IngredientType.Tomato,  PixelArtGenerator.Load(PixelArtGenerator.Ing_Tomato)),
                 (IngredientType.Egg,     PixelArtGenerator.Load(PixelArtGenerator.Ing_Egg)),
+                (IngredientType.Cabbage, PixelArtGenerator.Load(PixelArtGenerator.Ing_Cabbage)),
+                (IngredientType.Potato,  PixelArtGenerator.Load(PixelArtGenerator.Ing_Potato)),
             };
 
             // Day 13-B: little thought bubble that sits above the chef's
@@ -382,17 +389,30 @@ namespace DayOneChef.Editor
             // station wears.
             marker.Configure(type, label, burstColor, burstSprite);
 
-            var labelGo = new GameObject("Label");
-            labelGo.transform.SetParent(go.transform, worldPositionStays: false);
-            // Day 13-B polish: label dropped below the station body so
-            // it stops fighting with the screen-space order panel that
-            // sits at the top of the canvas. Smaller font (3f instead
-            // of 4f) keeps it inside the station footprint.
-            labelGo.transform.localPosition = new Vector3(0f, -0.55f, -0.1f);
-            labelGo.transform.localScale = new Vector3(
+            // Day 13-C: wooden plaque under the station body. The bare
+            // floating-text version read as "debug label" — a small dark
+            // panel with cream text gives the station a finished label
+            // tag and matches the room's wall palette.
+            var plaqueGo = new GameObject("Plaque");
+            plaqueGo.transform.SetParent(go.transform, worldPositionStays: false);
+            plaqueGo.transform.localPosition = new Vector3(0f, -0.55f, -0.1f);
+            plaqueGo.transform.localScale = new Vector3(
                 1f / go.transform.localScale.x,
                 1f / go.transform.localScale.y,
                 1f);
+
+            var plaqueBgGo = new GameObject("Bg");
+            plaqueBgGo.transform.SetParent(plaqueGo.transform, worldPositionStays: false);
+            plaqueBgGo.transform.localPosition = Vector3.zero;
+            plaqueBgGo.transform.localScale = new Vector3(1.6f, 0.55f, 1f);
+            var plaqueBg = plaqueBgGo.AddComponent<SpriteRenderer>();
+            plaqueBg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
+            plaqueBg.color = new Color(0.118f, 0.086f, 0.071f, 0.92f); // wall-dark
+            plaqueBg.sortingOrder = 10;
+
+            var labelGo = new GameObject("Text");
+            labelGo.transform.SetParent(plaqueGo.transform, worldPositionStays: false);
+            labelGo.transform.localPosition = new Vector3(0f, 0f, -0.05f);
             var tmp = labelGo.AddComponent<TextMeshPro>();
             // Assign the font BEFORE any text. TMP's internal material
             // caches pick the first font they see at text-layout time,
@@ -400,9 +420,9 @@ namespace DayOneChef.Editor
             // LiberationSans SDF's material even after reassignment.
             tmp.font = koreanFont;
             tmp.text = label;
-            tmp.fontSize = 3f;
+            tmp.fontSize = 2.6f;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = Color.black;
+            tmp.color = new Color(0.96f, 0.91f, 0.78f, 1f); // cream on dark
             tmp.sortingOrder = 11;
             EditorUtility.SetDirty(tmp);
         }
@@ -417,28 +437,61 @@ namespace DayOneChef.Editor
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = customerSprite;
             sr.color = Color.white;
-            sr.sortingOrder = 8;
+            // Day 13-C: customer is at the viewer's edge of the room
+            // (bottom of screen, in front of the counter) — drawn ABOVE
+            // the counter (5) so the body silhouette is whole. Match the
+            // chef's order (10) so neither hops over the other when they
+            // happen to overlap (rare; chef stays in the kitchen half).
+            sr.sortingOrder = 10;
 
             var customer = go.AddComponent<Customer>();
 
             // Order bubble — a child TMP label above the customer.
-            // Wired to the Customer via AttachBubble so Customer.Configure
-            // (called every round start by GameRound) can update the text
-            // to the current recipe's display name.
+            // Day 13-C polish: paper-note background card behind the
+            // text so the order reads as a hand-written ticket pinned
+            // above the customer instead of floating naked text.
             var bubbleGo = new GameObject("OrderBubble");
             bubbleGo.transform.SetParent(go.transform, worldPositionStays: false);
-            bubbleGo.transform.localPosition = new Vector3(0f, 1.3f, -0.1f);
+            bubbleGo.transform.localPosition = new Vector3(0f, 1.0f, -0.1f);
             bubbleGo.transform.localScale = new Vector3(
                 1f / go.transform.localScale.x,
                 1f / go.transform.localScale.y,
                 1f);
-            var tmp = bubbleGo.AddComponent<TextMeshPro>();
+
+            var bubbleBgGo = new GameObject("Bg");
+            bubbleBgGo.transform.SetParent(bubbleGo.transform, worldPositionStays: false);
+            bubbleBgGo.transform.localPosition = Vector3.zero;
+            bubbleBgGo.transform.localScale = new Vector3(3.2f, 1.0f, 1f);
+            var bubbleBg = bubbleBgGo.AddComponent<SpriteRenderer>();
+            bubbleBg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
+            bubbleBg.color = new Color(0.96f, 0.91f, 0.78f, 0.96f); // cream paper
+            bubbleBg.sortingOrder = 11;
+
+            // Speech-bubble tail — rotated square pointing straight down
+            // at the customer's head so the bubble reads as dialogue.
+            // Centered (was off-center earlier and read as a banner with
+            // a stray flag).
+            var tailGo = new GameObject("Tail");
+            tailGo.transform.SetParent(bubbleGo.transform, worldPositionStays: false);
+            tailGo.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+            tailGo.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            tailGo.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
+            var tailSr = tailGo.AddComponent<SpriteRenderer>();
+            tailSr.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSquarePath);
+            tailSr.color = bubbleBg.color;
+            tailSr.sortingOrder = 11;
+
+            var bubbleTextGo = new GameObject("Text");
+            bubbleTextGo.transform.SetParent(bubbleGo.transform, worldPositionStays: false);
+            bubbleTextGo.transform.localPosition = new Vector3(0f, 0f, -0.05f);
+            var tmp = bubbleTextGo.AddComponent<TextMeshPro>();
             tmp.font = koreanFont;
             tmp.text = "주문 대기 중…";
-            tmp.fontSize = 4f;
+            tmp.fontSize = 3.4f;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = Color.black;
+            tmp.color = new Color(0.18f, 0.13f, 0.10f, 1f); // dark on cream
             tmp.sortingOrder = 12;
+            tmp.rectTransform.sizeDelta = new Vector2(3.0f, 0.9f);
             EditorUtility.SetDirty(tmp);
 
             // Day 13 v2: ASCII face label removed — the customer
@@ -680,6 +733,8 @@ namespace DayOneChef.Editor
                 (IngredientType.Lettuce, PixelArtGenerator.Load(PixelArtGenerator.Ing_Lettuce)),
                 (IngredientType.Tomato,  PixelArtGenerator.Load(PixelArtGenerator.Ing_Tomato)),
                 (IngredientType.Egg,     PixelArtGenerator.Load(PixelArtGenerator.Ing_Egg)),
+                (IngredientType.Cabbage, PixelArtGenerator.Load(PixelArtGenerator.Ing_Cabbage)),
+                (IngredientType.Potato,  PixelArtGenerator.Load(PixelArtGenerator.Ing_Potato)),
             };
             iconArr.arraySize = iconEntries.Length;
             for (var i = 0; i < iconEntries.Length; i++)
