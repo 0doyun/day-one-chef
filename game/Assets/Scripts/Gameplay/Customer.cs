@@ -68,7 +68,7 @@ namespace DayOneChef.Gameplay
                 return;
             }
             _orderBubble.text = _currentOrder != null && _currentOrder.Recipe != null
-                ? _currentOrder.Recipe.DisplayName
+                ? $"{_currentOrder.Recipe.DisplayName} 주세요!"
                 : _emptyBubbleText;
         }
 
