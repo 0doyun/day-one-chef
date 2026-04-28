@@ -4,6 +4,8 @@
 
 *A mini-game where you teach an over-eager rookie AI chef to cook with a single line of Korean instruction. The chef shouts "넵!" and executes exactly what you said — no inferred steps, no skipped literalness — which is where the comedy comes from.*
 
+![Day One Chef gameplay demo](docs/media/demo.gif)
+
 ---
 
 ## 한 줄 게임 소개
